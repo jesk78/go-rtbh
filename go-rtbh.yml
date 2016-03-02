@@ -1,0 +1,35 @@
+---
+# This is the main configuration file for go-rtbh.
+#
+# Description (and defaults):
+#
+# redis:
+#   address: 'localhost:6379'
+#   password: ''
+#   database: 0
+#
+# amqp:
+#   address: 'localhost:5672'
+#   username: 'go-rtbh'
+#   password: 'go-rtbh'
+#   exchange: 'amqp-input'
+#
+# whitelist:
+#   - name: 'descriptive name for entry'
+#     ips:
+#       - <ipv4 address of entry>
+#       - <ipv6 address of entry>
+#
+
+redis:
+  address: 'jessie.dev:6379'
+
+amqp:
+  address: 'jessie.dev:5672'
+  username: 'go-rtbh'
+  password: 'go-rtbh'
+  exchange: 'amqp-input'
+
+whitelist:
+  - address: '10.0.3.1'
+    description: 'development workstation'
