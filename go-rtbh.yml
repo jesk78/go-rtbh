@@ -22,10 +22,10 @@
 #
 
 redis:
-  address: 'jessie.dev:6379'
+  address: 'elk-server.protected:6379'
 
 amqp:
-  address: 'jessie.dev:5672'
+  address: 'elk-server.protected:5672'
   username: 'go-rtbh'
   password: 'go-rtbh'
   exchange: 'amqp-input'
