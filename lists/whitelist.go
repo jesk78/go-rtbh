@@ -1,5 +1,9 @@
 package lists
 
+import (
+	"strings"
+)
+
 const WHITELIST = "_rtbh_whitelist"
 
 type Whitelist struct {
@@ -30,6 +34,21 @@ func (wl *Whitelist) Count() int64 {
 func (wl *Whitelist) Listed(address string) bool {
 	result := Redis.HMGet(WHITELIST, address).Val()[0]
 	return result != nil
+}
+
+func (wl *Whitelist) GetAll() []string {
+	var result []string
+
+	for _, addr := range Redis.HKeys(WHITELIST).Val() {
+		// Skip IPv6 addresses for now
+		if strings.Contains(addr, ":") {
+			continue
+		}
+
+		result = append(result, addr)
+	}
+
+	return result
 }
 
 func NewWhitelist() (wl *Whitelist) {

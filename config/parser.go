@@ -26,6 +26,17 @@ type Config struct {
 		Password string `yaml:"password"`
 		Database int64  `yaml:"database"`
 	} `yaml:"redis"`
+	BGP struct {
+		Asnum      string `yaml:"asnum"`
+		RouterId   string `yaml:"routerid"`
+		NextHop    string `yaml:"nexthop"`
+		ConfigFile string `yaml:"config"`
+		Peers      []struct {
+			Name    string `yaml:"name"`
+			Address string `yaml:"address"`
+			Asnum   string `yaml:"asnum"`
+		} `yaml:"peers"`
+	} `yaml:"bgp"`
 	Whitelist []struct {
 		Address     string `yaml:"address"`
 		Description string `yaml:"description"`

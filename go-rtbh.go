@@ -17,6 +17,7 @@ import (
 var Log logger.Log
 var Config *config.Config
 var Amqp *proto.AmqpClient
+var Bird *proto.Bird
 var Redis *redis.Client
 var Pipeline *pipeline.Pipeline
 var Whitelist *lists.Whitelist
@@ -96,7 +97,7 @@ func init() {
 	}
 	Log.Debug("[pipeline]: Library initialized")
 
-	if Pipeline, err = pipeline.NewPipeline(); err != nil {
+	if Pipeline, err = pipeline.NewPipeline(config.Ruleset); err != nil {
 		Log.Fatal("[pipeline]: Failed to create new pipeline: " + err.Error())
 	}
 	Log.Debug("[pipeline]: Initialized new pipeline")
@@ -106,6 +107,7 @@ func init() {
 		Log.Fatal(err)
 	}
 	Log.Debug("[Amqp]: Connected to " + Config.Amqp.Address)
+
 }
 
 func main() {

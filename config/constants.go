@@ -14,3 +14,6 @@ const D_INPUT_BUFSIZE int = 64
 
 // Goroutine control signals
 const CTL_SHUTDOWN int = 0
+
+// Various files used
+const TMPL_BIRD string = "/opt/go-rtbh/share/bird.conf.template"

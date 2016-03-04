@@ -22,13 +22,23 @@
 #
 
 redis:
-  address: 'elk-server.protected:6379'
+  address: 'rtbh-server.protected:6379'
 
 amqp:
   address: 'elk-server.protected:5672'
   username: 'go-rtbh'
   password: 'go-rtbh'
   exchange: amqp-input
+
+bgp:
+  asnum: 65342
+  routerid: 192.168.100.11
+  nexthop: 192.0.2.1
+  config: '/etc/bird/bird.conf'
+  peers:
+    - name: router_protected
+      address: 192.168.100.254
+      asnum: 65342
 
 whitelist:
   - address: '10.0.3.1'
@@ -37,8 +47,9 @@ whitelist:
     description: 'Private colocation server'
 
 blacklist:
-  - address: '125.88.177.93'
+  - address: '222.186.56.46'
     reason: 'Known attacker ip'
 
 ruleset:
   - '^ET.*'
+  - '^SURICATA.*'

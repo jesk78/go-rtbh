@@ -1,5 +1,9 @@
 package lists
 
+import (
+	"strings"
+)
+
 const BLACKLIST = "_rtbh_blacklist"
 
 type Blacklist struct {
@@ -17,6 +21,20 @@ func (bl *Blacklist) Add(address string, reason string) bool {
 func (bl *Blacklist) Listed(address string) bool {
 	result := Redis.HMGet(BLACKLIST, address).Val()[0]
 	return result != nil
+}
+
+func (bl *Blacklist) GetAll() []string {
+	var result []string
+
+	for _, addr := range Redis.HKeys(BLACKLIST).Val() {
+		// Skip IPv6 addresses for now
+		if strings.Contains(addr, ":") {
+			continue
+		}
+		result = append(result, addr)
+	}
+
+	return result
 }
 
 func NewBlacklist() (bl *Blacklist) {
