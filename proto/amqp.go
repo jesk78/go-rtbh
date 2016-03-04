@@ -19,14 +19,14 @@ func NewAmqpClient() (ac *AmqpClient, err error) {
 	var url string
 	var url_d string
 
-	url = "amqp://" + Config.Amqp.Username + ":" + Config.Amqp.Password + "@" + Config.Amqp.Address
-	url_d = "amqp://" + Config.Amqp.Username + ":********@" + Config.Amqp.Address
-
 	ac = &AmqpClient{
 		Events:  make(chan []byte, config.D_AMQP_BUFSIZE),
 		Control: make(chan int, config.D_CONTROL_BUFSIZE),
 		Done:    make(chan bool, config.D_DONE_BUFSIZE),
 	}
+
+	url = "amqp://" + Config.Amqp.Username + ":" + Config.Amqp.Password + "@" + Config.Amqp.Address
+	url_d = "amqp://" + Config.Amqp.Username + ":********@" + Config.Amqp.Address
 
 	// Try to connect to AMQP
 	if ac.Connection, err = amqp.Dial(url); err != nil {
@@ -40,6 +40,7 @@ func NewAmqpClient() (ac *AmqpClient, err error) {
 		err = errors.New("[Amqp]: Failed to setup a channel: " + err.Error())
 		return
 	}
+	Log.Debug("[Amqp]: Got a channel")
 
 	// Declare the fanout exchange on the newly created channel
 	err = ac.Channel.ExchangeDeclare(
@@ -55,25 +56,21 @@ func NewAmqpClient() (ac *AmqpClient, err error) {
 		err = errors.New("[Amqp]: Failed to declare an exchange: " + err.Error())
 		return
 	}
+	Log.Debug("[Amqp]: Declared exchange: " + Config.Amqp.Exchange)
 
 	// Declare the private queue
 	ac.Queue, err = ac.Channel.QueueDeclare(
-		Config.Amqp.Exchange, // Name
-		true,                 // Durable queue
-		false,                // Dont delete when unused
-		true,                 // Exclusive queue
-		false,                // No-wait queue
-		nil,                  // No arguments
+		"",    // Name
+		false, // Durable queue
+		false, // Dont delete when unused
+		true,  // Exclusive queue
+		false, // No-wait queue
+		nil,   // No arguments
 	)
 	if err != nil {
 		err = errors.New("[Amqp]: Failed to declare queue: " + err.Error())
 	}
-
-	return
-}
-
-func (ac *AmqpClient) Slurp() (err error) {
-	var stop_loop bool
+	Log.Debug("[Amqp]: Declared a private queue")
 
 	// Bind to the queue
 	err = ac.Channel.QueueBind(
@@ -87,6 +84,13 @@ func (ac *AmqpClient) Slurp() (err error) {
 		err = errors.New("[Amqp]: Failed to bind to queue: " + err.Error())
 		return
 	}
+	Log.Debug("[Amqp]: Bound to queue")
+
+	return
+}
+
+func (ac *AmqpClient) Slurp(input chan []byte) (err error) {
+	var stop_loop bool
 
 	// Start consumer
 	messageChannel, err := ac.Channel.Consume(
@@ -98,6 +102,7 @@ func (ac *AmqpClient) Slurp() (err error) {
 		false,         // No-wait consumer
 		nil,           // No arguments
 	)
+	Log.Debug("[Amqp]: Ready to consume messages")
 
 	// Start amqp eventloop
 	stop_loop = false
@@ -111,7 +116,7 @@ func (ac *AmqpClient) Slurp() (err error) {
 		case message := <-messageChannel:
 			{
 				event := message.Body
-				Log.Debug("[Amqp]: Received: " + string(event))
+				input <- event
 			}
 		case cmd := <-ac.Control:
 			{

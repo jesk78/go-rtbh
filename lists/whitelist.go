@@ -27,6 +27,11 @@ func (wl *Whitelist) Count() int64 {
 	return count
 }
 
+func (wl *Whitelist) Listed(address string) bool {
+	result := Redis.HMGet(WHITELIST, address).Val()[0]
+	return result != nil
+}
+
 func NewWhitelist() (wl *Whitelist) {
 	wl = &Whitelist{}
 

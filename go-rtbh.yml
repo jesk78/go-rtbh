@@ -28,8 +28,17 @@ amqp:
   address: 'elk-server.protected:5672'
   username: 'go-rtbh'
   password: 'go-rtbh'
-  exchange: 'amqp-input'
+  exchange: amqp-input
 
 whitelist:
   - address: '10.0.3.1'
     description: 'development workstation'
+  - address: '213.154.229.26'
+    description: 'Private colocation server'
+
+blacklist:
+  - address: '125.88.177.93'
+    reason: 'Known attacker ip'
+
+ruleset:
+  - '^ET.*'

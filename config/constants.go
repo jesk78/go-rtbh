@@ -10,6 +10,7 @@ const D_SIGNAL_BUFSIZE int = 16
 const D_CONTROL_BUFSIZE int = 1
 const D_DONE_BUFSIZE int = 1
 const D_AMQP_BUFSIZE int = 32
+const D_INPUT_BUFSIZE int = 64
 
 // Goroutine control signals
 const CTL_SHUTDOWN int = 0

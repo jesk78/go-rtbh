@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lists"
+	"github.com/r3boot/go-rtbh/pipeline"
 	"github.com/r3boot/go-rtbh/proto"
 	"github.com/r3boot/rlib/logger"
 	"gopkg.in/redis.v3"
@@ -17,6 +18,7 @@ var Log logger.Log
 var Config *config.Config
 var Amqp *proto.AmqpClient
 var Redis *redis.Client
+var Pipeline *pipeline.Pipeline
 var Whitelist *lists.Whitelist
 
 // OS signals
@@ -33,6 +35,10 @@ func signalHandler(signals chan os.Signal, done chan bool) {
 		Log.Debug("[go-rtbh]: Sending cleanup signal to Amqp")
 		Amqp.Control <- config.CTL_SHUTDOWN
 		<-Amqp.Done
+
+		Log.Debug("[go-rtbh]: Sending cleanup signal to Pipeline")
+		Pipeline.Control <- config.CTL_SHUTDOWN
+		<-Pipeline.Done
 
 		done <- true
 	}
@@ -64,6 +70,7 @@ func init() {
 		Log.Fatal(err)
 	}
 	Log.Debug("Loaded configuration from " + *cfgfile)
+	Log.Debug("Loaded " + strconv.Itoa(len(config.Ruleset)) + " rules")
 
 	// Setup protocol library
 	if err = proto.Setup(Log, Config); err != nil {
@@ -80,13 +87,19 @@ func init() {
 	// Setup lists library
 	if err = lists.Setup(Log, Config, Redis); err != nil {
 		Log.Fatal("[lists]: Initialization failed: " + err.Error())
-	} else {
-		Log.Debug("[lists]: Library initialized")
 	}
+	Log.Debug("[lists]: Library initialized")
 
-	// Configure whitelist
-	Whitelist = lists.NewWhitelist()
-	Log.Verbose("[Whitelist]: There are " + strconv.FormatInt(Whitelist.Count(), 10) + " entries on the whitelist")
+	// Configure pipeline
+	if err = pipeline.Setup(Log, Config); err != nil {
+		Log.Fatal("[pipeline]: Initialization failed: " + err.Error())
+	}
+	Log.Debug("[pipeline]: Library initialized")
+
+	if Pipeline, err = pipeline.NewPipeline(); err != nil {
+		Log.Fatal("[pipeline]: Failed to create new pipeline: " + err.Error())
+	}
+	Log.Debug("[pipeline]: Initialized new pipeline")
 
 	// Configure AMQP client
 	if Amqp, err = proto.NewAmqpClient(); err != nil {
@@ -96,6 +109,10 @@ func init() {
 }
 
 func main() {
+	var input_data chan []byte
+
+	input_data = make(chan []byte, config.D_INPUT_BUFSIZE)
+
 	// Start signal handles
 	signals = make(chan os.Signal, config.D_SIGNAL_BUFSIZE)
 	allDone = make(chan bool)
@@ -104,8 +121,12 @@ func main() {
 	Log.Debug("[go-rtbh]: Started OS signal handler")
 
 	// Start AMQP event slurper
-	go Amqp.Slurp()
+	go Amqp.Slurp(input_data)
 	Log.Debug("[go-rtbh]: Amqp event slurper started")
+
+	// Start pipeline
+	go Pipeline.Startup(input_data)
+	Log.Debug("[go-rtbh]: Pipeline started")
 
 	// Wait for program completion
 	<-allDone
