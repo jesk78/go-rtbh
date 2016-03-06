@@ -1,0 +1,46 @@
+{{% define "header" %}}
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Webbased console for an s/RTBH blacklisting system">
+    <meta name="author" content="Lex van Roon">
+    <link rel="icon" href="/favicon.ico">
+
+    <title>s/RTBH Blacklist Console</title>
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+    <link href="/app/rtbh-app.css" rel="stylesheet">
+
+    <!-- 1. Load libraries -->
+    <!-- IE required polyfills, in this exact order -->
+    <script src="/js/es6-shim/es6-shim.min.js"></script>
+    <script src="/js/systemjs/dist/system-polyfills.js"></script>
+    <script src="/js/angular2/es6/dev/src/testing/shims_for_IE.js"></script>   
+
+    <script src="/js/angular2/bundles/angular2-polyfills.js"></script>
+    <script src="/js/systemjs/dist/system.src.js"></script>
+    <script src="/js/rxjs/bundles/Rx.js"></script>
+    <script src="/js/angular2/bundles/angular2.dev.js"></script>
+    <script src="/js/angular2/bundles/router.dev.js"></script>
+
+    <!-- 2. Configure SystemJS -->
+    <script>
+      System.config({
+        packages: {        
+          app: {
+            format: 'register',
+            defaultExtension: 'js'
+          }
+        }
+      });
+      System.import('app/main')
+            .then(null, console.error.bind(console));
+    </script>
+
+  </head>
+{{% end %}}

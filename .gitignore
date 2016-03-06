@@ -1,2 +1,6 @@
 *.swp
 go-rtbh
+api/resources/app/*.js
+api/resources/app/*.map
+api/resources/app/node_modules
+api/resources/app/typings

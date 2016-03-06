@@ -43,7 +43,7 @@ func (pl *Pipeline) Startup(input chan []byte) (err error) {
 	var stop_loop bool
 	var event *Event
 
-	Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
+	// Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
 
 	stop_loop = false
 	for {
@@ -82,7 +82,7 @@ func (pl *Pipeline) Startup(input chan []byte) (err error) {
 
 					History.Update(event.Address)
 
-					Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
+					// Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
 
 					Log.Debug("[Pipeline]: Added " + event.Address + " to blacklist because of " + event.Reason)
 					continue

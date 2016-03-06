@@ -18,6 +18,10 @@ func (bl *Blacklist) Add(address string, reason string) bool {
 	return true
 }
 
+func (bl *Blacklist) Get(address string) string {
+	return Redis.HMGet(BLACKLIST, address).Val()[0].(string)
+}
+
 func (bl *Blacklist) Listed(address string) bool {
 	result := Redis.HMGet(BLACKLIST, address).Val()[0]
 	return result != nil

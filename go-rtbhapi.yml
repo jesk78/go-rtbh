@@ -1,0 +1,11 @@
+---
+# Sample configuration file for go-rtbhapi
+
+api:
+  bindip: '0.0.0.0'
+  bindport: 6142
+  resources: ./api/resources
+
+redis:
+  address: 'jessie.dev:6379'
+

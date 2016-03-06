@@ -15,6 +15,11 @@ const AMQP_D_PASS string = "go-rtbh"
 const AMQP_D_EXCHANGE string = "amqp-input"
 
 type Config struct {
+	Api struct {
+		BindIp    string `yaml:"bindip"`
+		BindPort  string `yaml:"bindport"`
+		Resources string `yaml:"resources"`
+	} `yaml:"api"`
 	Amqp struct {
 		Address  string `yaml:"address"`
 		Username string `yaml:"username"`

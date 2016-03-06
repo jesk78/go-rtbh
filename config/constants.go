@@ -1,6 +1,7 @@
 package config
 
 // Default configuration options
+const D_APICFGFILE string = "go-rtbhapi.yml"
 const D_CFGFILE string = "go-rtbh.yml"
 const D_DEBUG bool = false
 const D_TIMESTAMP bool = false
@@ -16,4 +17,4 @@ const D_INPUT_BUFSIZE int = 64
 const CTL_SHUTDOWN int = 0
 
 // Various files used
-const TMPL_BIRD string = "/opt/go-rtbh/share/bird.conf.template"
+const TMPL_BIRD string = "./templates/bird.conf.template"
