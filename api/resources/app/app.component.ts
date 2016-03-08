@@ -1,4 +1,5 @@
 import {Component}          from 'angular2/core';
+import {HTTP_PROVIDERS}     from 'angular2/http';
 import {RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS} from 'angular2/router';
 
 import {BlacklistService}   from './blacklist.service';
@@ -35,6 +36,7 @@ import {DashboardComponent} from './dashboard.component';
     directives: [ROUTER_DIRECTIVES],
     providers: [
         ROUTER_PROVIDERS,
+        HTTP_PROVIDERS,
         BlacklistService,
     ]
 })

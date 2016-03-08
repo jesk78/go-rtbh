@@ -1,4 +1,4 @@
-import {Component}          from 'angular2/core';
+import {Component, OnInit}  from 'angular2/core';
 import {BlacklistEntry}     from './blacklist-entry';
 import {BlacklistService}   from './blacklist.service';
 
@@ -18,10 +18,9 @@ import {BlacklistService}   from './blacklist.service';
 })
 
 export class BlacklistListComponent {
-    selectedEntry: BlacklistEntry;
-    entries: BlacklistEntry[];
+    constructor(private _blacklistService: BlacklistService) { }
 
     onSelect(entry) {
-        this.selectedEntry = entry;
+        this._blacklistService.setSelectedEntry(entry);
     }
 }
