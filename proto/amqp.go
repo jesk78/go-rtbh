@@ -50,7 +50,7 @@ func NewAmqpClient() (ac *AmqpClient, err error) {
 		false,                // Not auto-deleted
 		false,                // Not an internal queue
 		false,                // No-wait queue
-		nil,                  // No arguments
+		nil,                  // Arguments
 	)
 	if err != nil {
 		err = errors.New("[Amqp]: Failed to declare an exchange: " + err.Error())
@@ -60,8 +60,8 @@ func NewAmqpClient() (ac *AmqpClient, err error) {
 
 	// Declare the private queue
 	ac.Queue, err = ac.Channel.QueueDeclare(
-		"",    // Name
-		false, // Durable queue
+		Config.Amqp.Exchange+".rtbh-queue", // Name
+		true,  // Durable queue
 		false, // Dont delete when unused
 		true,  // Exclusive queue
 		false, // No-wait queue
@@ -69,16 +69,17 @@ func NewAmqpClient() (ac *AmqpClient, err error) {
 	)
 	if err != nil {
 		err = errors.New("[Amqp]: Failed to declare queue: " + err.Error())
+		return
 	}
 	Log.Debug("[Amqp]: Declared a private queue")
 
 	// Bind to the queue
 	err = ac.Channel.QueueBind(
 		ac.Queue.Name,        // Name of queue
-		"",                   // Routing key
+		"#",                  // Routing key
 		Config.Amqp.Exchange, // Exchange
-		false,
-		nil,
+		false,                // No-wait
+		nil,                  // Args
 	)
 	if err != nil {
 		err = errors.New("[Amqp]: Failed to bind to queue: " + err.Error())
