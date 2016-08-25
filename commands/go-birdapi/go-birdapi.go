@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
-	"github.com/r3boot/go-rtbh/birdapi"
+	_ "github.com/r3boot/go-rtbh/birdapi"
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lists"
 	"github.com/r3boot/go-rtbh/proto"
 	"github.com/r3boot/rlib/logger"
 	"gopkg.in/redis.v3"
 	"os"
+	"time"
 )
 
 // Program libraries
@@ -74,13 +75,35 @@ func init() {
 	}
 	Log.Debug("[lists]: Library initialized")
 
-	if err = birdapi.Setup(Log, Config, Redis); err != nil {
-		Log.Fatal(err)
+	// Initialize BGP daemon
+	if err = proto.ConfigureBGPd(); err != nil {
+		Log.Fatal("[BGP]: Initialization failed: " + err.Error())
 	}
+	Log.Debug("[BGP]: Library initialized")
+
 }
 
 func main() {
-	birdapi.RunServer()
+	var bgpPeer config.BGPPeer
+
+	go proto.RunBGPd()
+
+	time.Sleep(1 * time.Second)
+
+	for _, bgpPeer = range Config.BGP.Peers {
+		Log.Debug("Adding BGP neighbor " + bgpPeer.Address)
+		proto.AddBGPNeighbor(bgpPeer.Address)
+	}
+
+	for _, entry := range Blacklist.GetAll() {
+		Log.Debug("Adding BGP route " + entry)
+		proto.AddBGPRoute(entry + "/32")
+	}
+
+	Log.Debug(proto.BGPContext.Neighbours)
+	Log.Debug(proto.BGPContext.RIBv4)
+
+	time.Sleep(60 * time.Second)
 
 	// Wait for program completion
 	Log.Debug("[go-birdapi]: Program finished")

@@ -37,12 +37,12 @@ amqp:
 
 bgp:
   asnum: 65342
-  routerid: '192.168.100.11'
+  routerid: '10.0.4.5'
   nexthop: '192.0.2.1'
   config: '/etc/bird/bird.conf'
   peers:
     - name: 'router_protected'
-      address: '192.168.100.254'
+      address: '10.0.4.4'
       asnum: 65342
 
 whitelist:

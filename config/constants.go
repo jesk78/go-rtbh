@@ -17,4 +17,4 @@ const D_INPUT_BUFSIZE int = 64
 const CTL_SHUTDOWN int = 0
 
 // Various files used
-const TMPL_BIRD string = "./templates/bird.conf.template"
+const TMPL_BIRD string = "/usr/share/go-rtbh/bird.conf.template"
