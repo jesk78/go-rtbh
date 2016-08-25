@@ -1,12 +1,13 @@
 GO_RTBH = go-rtbh
 GO_RTBHAPI = go-rtbhapi
+GO_BIRDAPI = go-birdapi
 RTBH_APP = rtbh-app
 
 BUILD_DIR = ./build
 COMMAND_DIR = ./commands
 RESOURCES_DIR = ./api/resources
 
-all: clean $(GO_RTBH) $(GO_RTBHAPI)
+all: clean $(GO_RTBH) $(GO_RTBHAPI) ${GO_BIRDAPI}
 
 $(GO_RTBH):
 	[ ! -d $(BUILD_DIR) ] && mkdir -p $(BUILD_DIR) || true
@@ -15,6 +16,10 @@ $(GO_RTBH):
 $(GO_RTBHAPI):
 	[ ! -d $(BUILD_DIR) ] && mkdir -p $(BUILD_DIR) || true
 	go build -v -o $(BUILD_DIR)/$(GO_RTBHAPI) $(COMMAND_DIR)/$(GO_RTBHAPI)/$(GO_RTBHAPI).go
+
+$(GO_BIRDAPI):
+	[ ! -d $(BUILD_DIR) ] && mkdir -p $(BUILD_DIR) || true
+	go build -v -o $(BUILD_DIR)/$(GO_BIRDAPI) $(COMMAND_DIR)/$(GO_BIRDAPI)/$(GO_BIRDAPI).go
 
 $(RTBH_APP):
 	cd api/resources/app ; npm install
