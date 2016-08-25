@@ -24,6 +24,19 @@ type BirdTemplate struct {
 	Peers     []*BirdPeer
 }
 
+type BirdStatusProtocolEntry struct {
+	Name     string `json:"name"`
+	Protocol string `json:"protocol"`
+	Table    string `json:"table"`
+	State    string `json:"state"`
+	Since    string `json:"since"`
+	Info     string `json:"info"`
+}
+
+type BirdStatusOutput struct {
+	Protocols []BirdStatusProtocolEntry `json:"protocols"`
+}
+
 func LoadTemplate() []byte {
 	var fs os.FileInfo
 	var fd *os.File
@@ -54,6 +67,11 @@ func LoadTemplate() []byte {
 	}
 
 	return data
+}
+
+func (b *Bird) Command(cmdline string) (output []string, err error) {
+	output, _, err = sys.Run("birdc", cmdline)
+	return
 }
 
 func (b *Bird) WriteTo(cfgfile string) bool {
@@ -124,7 +142,7 @@ func (b *Bird) ExportPrefixes(wl []string, bl []string) bool {
 
 	Log.Debug("[Bird.ExportPrefixes]: Wrote " + Config.BGP.ConfigFile)
 
-	if _, _, err = sys.Run("/usr/sbin/birdc", "configure"); err != nil {
+	if _, err = b.Command("configure"); err != nil {
 		Log.Warning("[Bird.ExportPrefixes]: Failed to reload bird configuration")
 		return false
 	}
