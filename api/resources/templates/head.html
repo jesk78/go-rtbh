@@ -12,15 +12,16 @@
 
     <title>s/RTBH Blacklist Console</title>
 
-    <link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
-    <link href="/app/rtbh-app.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/jquery.dataTables.css">
+    <link href="/css/ie10-viewport-bug-workaround.css">
 
     <!-- 1. Load libraries -->
     <!-- IE required polyfills, in this exact order -->
+
     <script src="/js/es6-shim/es6-shim.min.js"></script>
     <script src="/js/systemjs/dist/system-polyfills.js"></script>
-    <script src="/js/angular2/es6/dev/src/testing/shims_for_IE.js"></script>   
+    <script src="/js/angular2/es6/dev/src/testing/shims_for_IE.js"></script>
 
     <script src="/js/angular2/bundles/angular2-polyfills.js"></script>
     <script src="/js/systemjs/dist/system.src.js"></script>
@@ -28,6 +29,8 @@
     <script src="/js/angular2/bundles/angular2.dev.js"></script>
     <script src="/js/angular2/bundles/router.dev.js"></script>
     <script src="/js/angular2/bundles/http.dev.js"></script>
+
+    <script src="/js/ng2-bootstrap/bundles/ng2-bootstrap.min.js"></script>
 
     <!-- 2. Configure SystemJS -->
     <script>
@@ -37,7 +40,10 @@
             format: 'register',
             defaultExtension: 'js'
           }
-        }
+        },
+          map: {
+            moment: '/js/moment/moment.js'
+          }
       });
       System.import('app/main')
             .then(null, console.error.bind(console));
