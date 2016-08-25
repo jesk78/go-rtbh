@@ -21,23 +21,28 @@
 #       - <ipv6 address of entry>
 #
 
+api:
+  bindip: '0.0.0.0'
+  bindport: 8080
+  resources: './api/resources'
+
 redis:
-  address: 'jessie.dev:6379'
+  address: 'redis.service.local:6379'
 
 amqp:
-  address: 'jessie.dev:5672'
+  address: 'rabbitmq.service.local:5672'
   username: 'go-rtbh'
   password: 'go-rtbh'
-  exchange: amqp-input
+  exchange: 'amqp-input'
 
 bgp:
   asnum: 65342
-  routerid: 192.168.100.11
-  nexthop: 192.0.2.1
+  routerid: '192.168.100.11'
+  nexthop: '192.0.2.1'
   config: '/etc/bird/bird.conf'
   peers:
-    - name: router_protected
-      address: 192.168.100.254
+    - name: 'router_protected'
+      address: '192.168.100.254'
       asnum: 65342
 
 whitelist:
