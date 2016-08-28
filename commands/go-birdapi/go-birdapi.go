@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	_ "github.com/r3boot/go-rtbh/birdapi"
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lists"
 	"github.com/r3boot/go-rtbh/proto"

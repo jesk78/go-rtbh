@@ -2,7 +2,7 @@ package proto
 
 import (
 	"errors"
-	"github.com/tehnerd/bgp2go"
+	"github.com/r3boot/go-rtbh/proto/bgp2go"
 	"net"
 	"strconv"
 	"strings"
@@ -13,6 +13,7 @@ var BGPContext bgp2go.BGPContext
 var cmdToPeer chan bgp2go.BGPProcessMsg
 var cmdFromPeer chan bgp2go.BGPProcessMsg
 
+// Utility function used to convert a router id string to uint32
 func inet_aton(ip net.IP) uint32 {
 	var bits []string
 	var b0 int
@@ -35,36 +36,79 @@ func inet_aton(ip net.IP) uint32 {
 	return sum
 }
 
-func ConfigureBGPd() (err error) {
+// Utility function used to convert a community string to uint32
+func community_aton(community string) uint32 {
+	var sum uint32
+	var words []string
+	var w0 int
+	var w1 int
+
+	words = strings.Split(community, ":")
+	w0, _ = strconv.Atoi(words[0])
+	w1, _ = strconv.Atoi(words[1])
+
+	sum += uint32(w0) << 16
+	sum += uint32(w1)
+
+	return sum
+}
+
+// Utility function used to add a default prefixlen to a prefix if needed
+func add_cidr_mask(addr string) string {
+	if strings.Contains(addr, "/") {
+		return addr
+	}
+
+	if strings.Contains(addr, ":") {
+		return addr + "/128"
+	} else {
+		return addr + "/32"
+	}
+}
+
+// Configure this side of the BGP routine
+func ConfigureBGP() (err error) {
 	var asnum uint64
-	var routerid_ip net.IP
 
 	// Convert asnum string into uint64 for later use
 	if asnum, err = strconv.ParseUint(Config.BGP.Asnum, 10, 32); err != nil {
-		err = errors.New("[ConfigureBGPd]: Failed to parse ASNum: " + err.Error())
-		return
-	}
-
-	// Convert routerid string into uint32
-	routerid_ip = net.ParseIP(Config.BGP.RouterId)
-	if routerid_ip == nil {
-		err = errors.New("[ConfigureBGPd]: Failed to convert RouterID to uint32")
+		err = errors.New("[ConfigureBGP]: Failed to parse Asnum: " + err.Error())
 		return
 	}
 
 	BGPContext.ASN = uint32(asnum)
-	BGPContext.RouterID = inet_aton(routerid_ip)
 	BGPContext.ListenLocal = true
+
+	BGPContext.RouterID, err = bgp2go.IPv4ToUint32(Config.BGP.RouterId)
+	if err != nil {
+		err = errors.New("[ConfigureBGP]: Failed to parse RouterID: " + err.Error())
+		return
+	}
+
+	BGPContext.NextHop, err = bgp2go.IPv4ToUint32(Config.BGP.NextHop)
+	if err != nil {
+		err = errors.New("[ConfigureBGP]: Failed to parse IPv4 NextHop: " + err.Error())
+		return
+	}
+
+	BGPContext.NextHopV6, err = bgp2go.IPv6StringToAddr(Config.BGP.NextHopV6)
+	if err != nil {
+		err = errors.New("[ConfigureBGP]: Failed to parse IPv6 NextHop: " + err.Error())
+		return
+	}
+
+	BGPContext.Community = append(BGPContext.Community, community_aton(Config.BGP.Community))
+	BGPContext.LocalPref = uint32(Config.BGP.LocalPref)
 
 	return
 }
 
-func RunBGPd() {
+func RunBGP() {
 	cmdToPeer = make(chan bgp2go.BGPProcessMsg)
 	cmdFromPeer = make(chan bgp2go.BGPProcessMsg)
 
 	Log.Debug("Starting BGP routine")
-	bgp2go.StartBGPProcess(cmdToPeer, cmdFromPeer, BGPContext)
+	go bgp2go.StartBGPProcess(cmdToPeer, cmdFromPeer, BGPContext)
 }
 
 func AddBGPv4Neighbor(ipaddr string) {
@@ -128,6 +172,7 @@ func AddBGPv6Route(prefix string) {
 }
 
 func AddBGPRoute(prefix string) {
+	prefix = add_cidr_mask(prefix)
 	if strings.Contains(prefix, ":") {
 		AddBGPv6Route(prefix)
 	} else {
@@ -150,6 +195,7 @@ func RemoveBGPv6Route(prefix string) {
 }
 
 func RemoveBGPRoute(prefix string) {
+	prefix = add_cidr_mask(prefix)
 	if strings.Contains(prefix, ":") {
 		RemoveBGPv6Route(prefix)
 	} else {

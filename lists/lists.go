@@ -3,17 +3,17 @@ package lists
 import (
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/rlib/logger"
-	"gopkg.in/redis.v3"
 )
+
+const REDIS_BASE string = "net.as65342.go-rtbh"
+const REDIS_ADDR_SEPARATOR string = "^"
 
 var Log logger.Log
 var Config *config.Config
-var Redis *redis.Client
 
-func Setup(l logger.Log, cfg *config.Config, rc *redis.Client) (err error) {
+func Setup(l logger.Log, cfg *config.Config) (err error) {
 	Log = l
 	Config = cfg
-	Redis = rc
 
 	return
 }

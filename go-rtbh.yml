@@ -29,6 +29,12 @@ api:
 redis:
   address: 'redis.service.local:6379'
 
+postgresql:
+  address: 'postgresql.service.local:5432'
+  username: 'go-rtbh'
+  password: 'go-rtbh'
+  name: 'go-rtbh'
+
 amqp:
   address: 'rabbitmq.service.local:5672'
   username: 'go-rtbh'
@@ -37,12 +43,14 @@ amqp:
 
 bgp:
   asnum: 65342
-  routerid: '10.0.4.5'
+  routerid: '10.0.4.3'
   nexthop: '192.0.2.1'
-  config: '/etc/bird/bird.conf'
+  nexthopv6: '2001:db8::2:1'
+  community: '65342:666'
+  localpref: 100
   peers:
     - name: 'router_protected'
-      address: '10.0.4.4'
+      address: '10.0.4.7'
       asnum: 65342
 
 whitelist:

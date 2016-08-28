@@ -1,33 +1,11 @@
-package pipeline
+package events
 
 import (
 	"encoding/json"
+	"time"
 )
 
-const E_ALERT string = "alert"
-const E_HTTP string = "http"
-const E_FILEINFO string = "fileinfo"
-const E_SYSLOG string = "syslog"
-
-// Struct used to extract the event type
-type EventType struct {
-	EventType string `json:"event_type"`
-}
-
-type etAlert struct {
-	SrcIp string `json:"src_ip"`
-	Alert struct {
-		Signature string `json:"signature"`
-	} `json:"alert"`
-}
-
-// The emitted event
-type Event struct {
-	Address string
-	Reason  string
-}
-
-func (event *Event) LoadFrom(data []byte) (err error) {
+func (event *RTBHEvent) LoadFrom(data []byte) (err error) {
 	var et EventType
 
 	// First, determine the event type
@@ -62,8 +40,10 @@ func (event *Event) LoadFrom(data []byte) (err error) {
 	return
 }
 
-func NewEvent(data []byte) (event *Event, err error) {
-	event = &Event{}
+func NewRTBHEvent(data []byte) (event *RTBHEvent, err error) {
+	event = &RTBHEvent{
+		AddedAt: time.Now(),
+	}
 
 	if err = event.LoadFrom(data); err != nil {
 		return

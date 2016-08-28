@@ -1,63 +1,68 @@
 package lists
 
 import (
-	"strings"
+	"errors"
+	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/orm"
+	"github.com/r3boot/go-rtbh/proto"
+	"net"
 )
-
-const WHITELIST = "_rtbh_whitelist"
 
 type Whitelist struct {
 }
 
-func (wl *Whitelist) Add(addr string, description string) bool {
-	_, err := Redis.HMSet(WHITELIST, addr, description).Result()
-	if err != nil {
-		Log.Warning("[Whitelist]: Failed to add " + addr + ": " + err.Error())
-		return false
+func (obj Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
+	var (
+		addr   orm.Address
+		wentry orm.Whitelist
+		names  []string
+		fqdn   string
+	)
+
+	if names, err = net.LookupAddr(entry.Address); err != nil {
+		Log.Warning("[Whitelist]: Failed to lookup fqdn for " + entry.Address)
 	}
 
-	return true
-}
-
-func (wl *Whitelist) Count() int64 {
-	var count int64
-	var err error
-
-	if count, err = Redis.HLen(WHITELIST).Result(); err != nil {
-		Log.Warning("[Whitelist.Count()]: Redis.HLen(): " + err.Error())
-		return -1
+	fqdn = names[0]
+	if len(names) > 1 {
+		Log.Warning("[Whitelist.Add]: Multiple hosts found for " + entry.Address + " using " + fqdn)
 	}
 
-	return count
-}
-
-func (wl *Whitelist) Listed(address string) bool {
-	result := Redis.HMGet(WHITELIST, address).Val()[0]
-	return result != nil
-}
-
-func (wl *Whitelist) GetAll() []string {
-	var result []string
-
-	for _, addr := range Redis.HKeys(WHITELIST).Val() {
-		// Skip IPv6 addresses for now
-		if strings.Contains(addr, ":") {
-			continue
-		}
-
-		result = append(result, addr)
+	if addr = orm.UpdateAddress(entry.Address, fqdn); addr.Addr == "" {
+		return
 	}
 
-	return result
+	wentry = orm.Whitelist{
+		Address:     &addr,
+		Description: entry.Description,
+	}
+	if ok := wentry.Save(); !ok {
+		return
+	}
+
+	proto.RemoveBGPRoute(entry.Address)
+
+	return
 }
 
-func NewWhitelist() (wl *Whitelist) {
-	wl = &Whitelist{}
+func (obj Whitelist) Remove(addr string) (err error) {
+	var entry orm.Whitelist
 
-	for _, entry := range Config.Whitelist {
-		Log.Debug("[Whitelist]: Adding " + entry.Address + " to the whitelist")
-		wl.Add(entry.Address, entry.Description)
+	if entry = orm.GetWhitelistEntry(addr); entry.Address.Addr == "" {
+		err = errors.New("[Whitelist.Remove]: Failed to retrieve address")
+		return
+	}
+
+	if ok := entry.Remove(); !ok {
+		err = errors.New("[Whitelist.Remove]: Failed to remove entry")
 	}
 
 	return
+}
+
+func (obj Whitelist) Listed(addr string) bool {
+	var entry orm.Whitelist
+
+	entry = orm.GetWhitelistEntry(addr)
+	return entry.Address != nil && entry.Address.Addr == addr
 }

@@ -1,24 +1,39 @@
 package lists
 
-const HISTORY = "_rtbh_history"
+import (
+	"errors"
+	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/orm"
+)
 
 type History struct {
 }
 
-func (hl *History) Update(address string) bool {
-	key := HISTORY + ":" + address
+func (obj History) Add(event events.RTBHEvent) (err error) {
+	var (
+		addr   orm.Address
+		entry  orm.History
+		reason orm.Reason
+	)
 
-	_, err := Redis.Incr(key).Result()
-	if err != nil {
-		Log.Warning("[History]: Failed to update history entry for " + address + ": " + err.Error())
-		return false
+	if addr = orm.GetAddress(event.Address); addr.Addr == "" {
+		err = errors.New("[History.Add]: GetAddress() failed: No such address")
+		return
 	}
 
-	return true
-}
+	if reason = orm.GetReason(event.Reason); reason.Reason == "" {
+		err = errors.New("[History.Add]: GetReason() failed: No such reason")
+		return
+	}
 
-func NewHistoryList() (hl *History) {
-	hl = &History{}
+	entry = orm.History{
+		Address: &addr,
+		Reason:  &reason,
+		AddedAt: event.AddedAt,
+	}
+	if ok := entry.Save(); !ok {
+		err = errors.New("[History.Add]: " + entry.String() + ".Save() failed")
+	}
 
 	return
 }

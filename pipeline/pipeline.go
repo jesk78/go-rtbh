@@ -2,8 +2,8 @@ package pipeline
 
 import (
 	"github.com/r3boot/go-rtbh/config"
+	"github.com/r3boot/go-rtbh/events"
 	"github.com/r3boot/go-rtbh/lists"
-	"github.com/r3boot/go-rtbh/proto"
 	"github.com/r3boot/rlib/logger"
 	"regexp"
 )
@@ -16,11 +16,10 @@ type Pipeline struct {
 var Log logger.Log
 var Config *config.Config
 
-var Whitelist *lists.Whitelist
+var Whitelist lists.Whitelist
 var Blacklist *lists.Blacklist
-var History *lists.History
+var History lists.History
 var Ruleset []*regexp.Regexp
-var Bird *proto.Bird
 
 func Setup(l logger.Log, cfg *config.Config) (err error) {
 	Log = l
@@ -31,19 +30,18 @@ func Setup(l logger.Log, cfg *config.Config) (err error) {
 
 func NewPipeline(ruleset []*regexp.Regexp) (pl *Pipeline, err error) {
 	pl = &Pipeline{}
-	Whitelist = lists.NewWhitelist()
-	Blacklist = lists.NewBlacklist()
 	Ruleset = ruleset
-	Bird = proto.NewBirdClient()
 
 	return
 }
 
 func (pl *Pipeline) Startup(input chan []byte) (err error) {
 	var stop_loop bool
-	var event *Event
+	var event *events.RTBHEvent
 
 	// Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
+
+	Blacklist = lists.NewBlacklist()
 
 	stop_loop = false
 	for {
@@ -54,7 +52,7 @@ func (pl *Pipeline) Startup(input chan []byte) (err error) {
 		select {
 		case data := <-input:
 			{
-				if event, err = NewEvent(data); err != nil {
+				if event, err = events.NewRTBHEvent(data); err != nil {
 					Log.Warning("[Pipeline] NewEvent: " + err.Error())
 					continue
 				}
@@ -71,24 +69,24 @@ func (pl *Pipeline) Startup(input chan []byte) (err error) {
 
 				if Blacklist.Listed(event.Address) {
 					Log.Warning("[Pipeline]: Host " + event.Address + " is already listed")
-					History.Update(event.Address)
+					History.Add(*event)
 					continue
 				}
 
 				if FoundMatch(event.Reason) {
-					if !Blacklist.Add(event.Address, event.Reason) {
-						continue
+					event.ExpireIn = "1h"
+
+					if err = Blacklist.Add(*event); err != nil {
+						Log.Warning(err)
 					}
 
-					History.Update(event.Address)
-
-					// Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
+					if err = History.Add(*event); err != nil {
+						Log.Warning(err)
+					}
 
 					Log.Debug("[Pipeline]: Added " + event.Address + " to blacklist because of " + event.Reason)
 					continue
 				}
-
-				Log.Debug(event)
 			}
 		case cmd := <-pl.Control:
 			{

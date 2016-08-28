@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"github.com/r3boot/go-rtbh/config"
+	"github.com/r3boot/go-rtbh/events"
 	"github.com/r3boot/go-rtbh/lists"
+	"github.com/r3boot/go-rtbh/orm"
 	"github.com/r3boot/go-rtbh/pipeline"
 	"github.com/r3boot/go-rtbh/proto"
 	"github.com/r3boot/rlib/logger"
-	"gopkg.in/redis.v3"
+	"gopkg.in/pg.v4"
 	"os"
 	"os/signal"
 	"strconv"
@@ -17,10 +19,8 @@ import (
 var Log logger.Log
 var Config *config.Config
 var Amqp *proto.AmqpClient
-var Bird *proto.Bird
-var Redis *redis.Client
+var Db *pg.DB
 var Pipeline *pipeline.Pipeline
-var Whitelist *lists.Whitelist
 
 // OS signals
 var signals chan os.Signal
@@ -73,20 +73,29 @@ func init() {
 	Log.Debug("Loaded configuration from " + *cfgfile)
 	Log.Debug("Loaded " + strconv.Itoa(len(config.Ruleset)) + " rules")
 
+	// Setup events
+	events.Setup(Log)
+	Log.Debug("[events]: Library initialized")
+
 	// Setup protocol library
 	if err = proto.Setup(Log, Config); err != nil {
 		Log.Fatal("[proto]: Initialization failed: " + err.Error())
 	}
 	Log.Debug("[proto]: Library initialized")
 
-	// Setup redis client
-	if Redis, err = proto.NewRedisClient(); err != nil {
-		Log.Fatal("[Redis]: " + err.Error())
+	// Setup postgresql client
+	if Db, err = proto.ConnectToPostgresql(); err != nil {
+		Log.Fatal(err)
 	}
-	Log.Debug("[Redis]: Connected to " + Config.Redis.Address)
+	Log.Debug("[postgresql]: Connected to " + Config.Database.Username + ":****@" + Config.Database.Address + "/" + Config.Database.Name)
+
+	if err = orm.Setup(Log, Db); err != nil {
+		Log.Fatal("[orm]: Initialization failed: " + err.Error())
+	}
+	Log.Debug("[orm]: Library initialized")
 
 	// Setup lists library
-	if err = lists.Setup(Log, Config, Redis); err != nil {
+	if err = lists.Setup(Log, Config); err != nil {
 		Log.Fatal("[lists]: Initialization failed: " + err.Error())
 	}
 	Log.Debug("[lists]: Library initialized")
@@ -108,9 +117,15 @@ func init() {
 	}
 	Log.Debug("[Amqp]: Connected to " + Config.Amqp.Address)
 
+	// Configure BGP routine
+	if err = proto.ConfigureBGP(); err != nil {
+		Log.Fatal(err)
+	}
+	Log.Debug("[BGP]: Library initialized")
 }
 
 func main() {
+	var bgpPeer config.BGPPeer
 	var input_data chan []byte
 
 	input_data = make(chan []byte, config.D_INPUT_BUFSIZE)
@@ -121,6 +136,16 @@ func main() {
 	signal.Notify(signals, os.Interrupt, os.Kill)
 	go signalHandler(signals, allDone)
 	Log.Debug("[go-rtbh]: Started OS signal handler")
+
+	// Start BGP routine
+	proto.RunBGP()
+	Log.Debug("[go-rtbh]: BGP route injector started")
+
+	// Add BGP neighbors
+	for _, bgpPeer = range Config.BGP.Peers {
+		Log.Debug("[go-rtbh] Adding BGP neighbor " + bgpPeer.Address + " as " + Config.BGP.Asnum)
+		proto.AddBGPNeighbor(bgpPeer.Address)
+	}
 
 	// Start AMQP event slurper
 	go Amqp.Slurp(input_data)
