@@ -17,6 +17,7 @@ const AMQP_D_EXCHANGE string = "amqp-input"
 const D_SIGNAL_BUFSIZE int = 16
 const D_CONTROL_BUFSIZE int = 1
 const D_DONE_BUFSIZE int = 1
+const D_REDIS_BUFSIZE int = 32
 const D_AMQP_BUFSIZE int = 32
 const D_INPUT_BUFSIZE int = 64
 

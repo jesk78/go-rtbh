@@ -3,7 +3,7 @@ package history
 import (
 	"errors"
 	"github.com/r3boot/go-rtbh/events"
-	"github.com/r3boot/go-rtbh/orm"
+	"github.com/r3boot/go-rtbh/lib/orm"
 )
 
 func (history *History) Add(event events.RTBHEvent) (err error) {

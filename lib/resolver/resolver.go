@@ -36,16 +36,19 @@ func NewResolver() (resolver *Resolver, err error) {
 		return
 	}
 
-	resolver = &Resolver{}
+	resolver = &Resolver{
+		cache:   make(map[string]string),
+		mutex:   &sync.Mutex{},
+		Control: make(chan int, config.D_CONTROL_BUFSIZE),
+		Done:    make(chan bool, config.D_DONE_BUFSIZE),
+	}
+
 	resolver.Interval, err = time.ParseDuration(Config.Resolver.LookupMaxInterval)
 	if err != nil {
 		resolver = nil
 		err = errors.New(MYNAME + ": Failed to parse duration: " + err.Error())
 		return
 	}
-
-	resolver.cache = make(map[string]string)
-	resolver.mutex = &sync.Mutex{}
 
 	Log.Debug(MYNAME + ": Initialized new dns resolver")
 

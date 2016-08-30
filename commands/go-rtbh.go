@@ -4,10 +4,10 @@ import (
 	"flag"
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib"
+	"github.com/r3boot/go-rtbh/lib/orm"
+	"github.com/r3boot/go-rtbh/lib/pipeline"
 	"github.com/r3boot/go-rtbh/lib/resolver"
-	"github.com/r3boot/go-rtbh/lists"
-	"github.com/r3boot/go-rtbh/orm"
-	"github.com/r3boot/go-rtbh/pipeline"
 	"github.com/r3boot/go-rtbh/proto"
 	"github.com/r3boot/rlib/logger"
 	"gopkg.in/pg.v4"
@@ -109,30 +109,9 @@ func init() {
 	}
 	Log.Debug("[orm]: Library initialized")
 
-	// Setup lists library
-	if err = lists.Setup(Log, Config); err != nil {
-		Log.Fatal("[lists]: Initialization failed: " + err.Error())
-	}
-	Log.Debug("[lists]: Library initialized")
-
-	// Configure pipeline
-	if err = pipeline.Setup(Log, Config); err != nil {
-		Log.Fatal("[pipeline]: Initialization failed: " + err.Error())
-	}
-	Log.Debug("[pipeline]: Library initialized")
-
-	if Pipeline, err = pipeline.NewPipeline(config.Ruleset); err != nil {
-		Log.Fatal("[pipeline]: Failed to create new pipeline: " + err.Error())
-	}
-	Log.Debug("[pipeline]: Initialized pipeline")
-
-	if Reaper, err = pipeline.NewReaper("10s"); err != nil {
-		Log.Fatal("[pipeline]: Failed to create new reaper: " + err.Error())
-	}
-	Log.Debug("[pipeline]: Initialized reaper")
-
-	if Resolver, err = resolver.NewResolver(); err != nil {
-		Log.Fatal("[Resolver]: Failed to create dns resolver: " + err.Error())
+	// Setup all submodules
+	if err = lib.Setup(Log, Config); err != nil {
+		Log.Fatal("Library initialization failed: " + err.Error())
 	}
 
 	// Configure AMQP client

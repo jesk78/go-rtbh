@@ -37,6 +37,8 @@ func New(r []*regexp.Regexp, bl *blacklist.Blacklist, wl *whitelist.Whitelist, h
 		blacklist: bl,
 		whitelist: wl,
 		history:   h,
+		Control:   make(chan int, config.D_CONTROL_BUFSIZE),
+		Done:      make(chan bool, config.D_DONE_BUFSIZE),
 	}
 
 	return pipeline
