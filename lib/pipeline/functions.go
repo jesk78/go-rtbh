@@ -9,39 +9,7 @@ import (
 	"regexp"
 )
 
-const MAX_WORKERS int = 8
-
-type Pipeline struct {
-	Control chan int
-	Done    chan bool
-}
-
-var Log logger.Log
-var Config *config.Config
-
-var Whitelist *whitelist.Whitelist
-var Blacklist *blacklist.Blacklist
-var History *history.History
-var Ruleset []*regexp.Regexp
-
-func Setup(l logger.Log, cfg *config.Config) (err error) {
-	Log = l
-	Config = cfg
-
-	return
-}
-
-func NewPipeline(ruleset []*regexp.Regexp) (pl *Pipeline, err error) {
-	pl = &Pipeline{}
-	Ruleset = ruleset
-	Whitelist = whitelist.New()
-	Blacklist = blacklist.New()
-	History = history.New()
-
-	return
-}
-
-func (pl *Pipeline) Startup(input chan []byte) (err error) {
+func (pl *Pipeline) WorkManagerRoutine(input chan []byte) (err error) {
 	var worker_queue chan chan []byte
 	var stop_loop bool
 	var worker_id int
