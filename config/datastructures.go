@@ -6,6 +6,11 @@ type ResolverConfig struct {
 	LookupMaxInterval string `yaml:"max_interval"`
 }
 
+type GeneralConfig struct {
+	NumWorkers int            `yaml:"workers"`
+	Resolver   ResolverConfig `yaml:"resolver"`
+}
+
 type ApiConfig struct {
 	BindIp    string `yaml:"bindip"`
 	BindPort  string `yaml:"bindport"`
@@ -59,7 +64,7 @@ type BlacklistConfig struct {
 }
 
 type Config struct {
-	Resolver  ResolverConfig    `yaml:"resolver"`
+	General   GeneralConfig     `yaml:"general"`
 	Api       ApiConfig         `yaml:"api"`
 	Amqp      AmqpConfig        `yaml:"amqp"`
 	Redis     RedisConfig       `yaml:"redis"`

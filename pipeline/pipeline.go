@@ -48,7 +48,7 @@ func (pl *Pipeline) Startup(input chan []byte) (err error) {
 
 	// Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
 
-	worker_queue = make(chan chan []byte, MAX_WORKERS)
+	worker_queue = make(chan chan []byte, Config.General.NumWorkers)
 
 	// Startup event workers
 	for worker_id = 1; worker_id <= MAX_WORKERS; worker_id++ {

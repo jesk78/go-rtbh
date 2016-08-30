@@ -31,7 +31,7 @@ func Setup(l logger.Log, c config.Config) (err error) {
 }
 
 func NewResolver() (resolver *Resolver, err error) {
-	if !Config.Resolver.Enabled {
+	if !Config.General.Resolver.Enabled {
 		err = errors.New(MYNAME + ": dns resolving not enabled")
 		return
 	}
