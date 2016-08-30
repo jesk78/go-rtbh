@@ -3,6 +3,8 @@ package lib
 import (
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/history"
+	"github.com/r3boot/go-rtbh/lib/listcache"
 	"github.com/r3boot/go-rtbh/lib/resolver"
 	"github.com/r3boot/go-rtbh/lib/whitelist"
 	"github.com/r3boot/rlib/logger"
@@ -24,6 +26,10 @@ func Setup(l logger.Log, c config.Config) (err error) {
 	}
 
 	if err = whitelist.Setup(Log, Config); err != nil {
+		return
+	}
+
+	if err = history.Setup(Log, Config); err != nil {
 		return
 	}
 

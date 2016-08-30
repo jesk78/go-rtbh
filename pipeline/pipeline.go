@@ -3,8 +3,8 @@ package pipeline
 import (
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/history"
 	"github.com/r3boot/go-rtbh/lib/whitelist"
-	"github.com/r3boot/go-rtbh/lists"
 	"github.com/r3boot/rlib/logger"
 	"regexp"
 )
@@ -21,7 +21,7 @@ var Config *config.Config
 
 var Whitelist *whitelist.Whitelist
 var Blacklist *blacklist.Blacklist
-var History lists.History
+var History *history.History
 var Ruleset []*regexp.Regexp
 
 func Setup(l logger.Log, cfg *config.Config) (err error) {
@@ -36,6 +36,7 @@ func NewPipeline(ruleset []*regexp.Regexp) (pl *Pipeline, err error) {
 	Ruleset = ruleset
 	Whitelist = whitelist.New()
 	Blacklist = blacklist.New()
+	History = history.New()
 
 	return
 }
