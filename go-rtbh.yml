@@ -23,6 +23,7 @@
 
 general:
   workers: 8
+  reaper_interval: 10s
   resolver:
     enable: true
     max_interval: 2500

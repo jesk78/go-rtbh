@@ -7,8 +7,9 @@ type ResolverConfig struct {
 }
 
 type GeneralConfig struct {
-	NumWorkers int            `yaml:"workers"`
-	Resolver   ResolverConfig `yaml:"resolver"`
+	NumWorkers     int            `yaml:"workers"`
+	ReaperInterval string         `yaml:"reaper_interval"`
+	Resolver       ResolverConfig `yaml:"resolver"`
 }
 
 type ApiConfig struct {
