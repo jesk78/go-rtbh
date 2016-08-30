@@ -1,4 +1,4 @@
-package lists
+package whitelist
 
 import (
 	"errors"
@@ -8,10 +8,7 @@ import (
 	"net"
 )
 
-type Whitelist struct {
-}
-
-func (obj Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
+func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 	var (
 		addr   orm.Address
 		wentry orm.Whitelist
@@ -21,9 +18,11 @@ func (obj Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 
 	if names, err = net.LookupAddr(entry.Address); err != nil {
 		Log.Warning("[Whitelist]: Failed to lookup fqdn for " + entry.Address)
+		fqdn = "unknown"
+	} else {
+		fqdn = names[0]
 	}
 
-	fqdn = names[0]
 	if len(names) > 1 {
 		Log.Warning("[Whitelist.Add]: Multiple hosts found for " + entry.Address + " using " + fqdn)
 	}
@@ -42,16 +41,20 @@ func (obj Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 
 	proto.RemoveBGPRoute(entry.Address)
 
+	wl.cache.Add(entry.Address, entry)
+
 	return
 }
 
-func (obj Whitelist) Remove(addr string) (err error) {
+func (wl *Whitelist) Remove(addr string) (err error) {
 	var entry orm.Whitelist
 
 	if entry = orm.GetWhitelistEntry(addr); entry.Address.Addr == "" {
 		err = errors.New("[Whitelist.Remove]: Failed to retrieve address")
 		return
 	}
+
+	wl.cache.Remove(addr)
 
 	if ok := entry.Remove(); !ok {
 		err = errors.New("[Whitelist.Remove]: Failed to remove entry")
@@ -60,9 +63,6 @@ func (obj Whitelist) Remove(addr string) (err error) {
 	return
 }
 
-func (obj Whitelist) Listed(addr string) bool {
-	var entry orm.Whitelist
-
-	entry = orm.GetWhitelistEntry(addr)
-	return entry.Address != nil && entry.Address.Addr == addr
+func (wl *Whitelist) Listed(addr string) bool {
+	return wl.cache.Has(addr)
 }

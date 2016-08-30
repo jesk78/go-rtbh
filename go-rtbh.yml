@@ -21,6 +21,10 @@
 #       - <ipv6 address of entry>
 #
 
+resolver:
+  enable: true
+  max_interval: 2500
+
 api:
   bindip: '0.0.0.0'
   bindport: 8080
@@ -50,7 +54,7 @@ bgp:
   localpref: 100
   peers:
     - name: 'router_protected'
-      address: '10.0.4.7'
+      address: '10.0.4.4'
       asnum: 65342
 
 whitelist:

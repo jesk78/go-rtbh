@@ -1,6 +1,11 @@
 package config
 
 // Configuration structs
+type ResolverConfig struct {
+	Enabled           bool   `yaml:"enable"`
+	LookupMaxInterval string `yaml:"max_interval"`
+}
+
 type ApiConfig struct {
 	BindIp    string `yaml:"bindip"`
 	BindPort  string `yaml:"bindport"`
@@ -54,6 +59,7 @@ type BlacklistConfig struct {
 }
 
 type Config struct {
+	Resolver  ResolverConfig    `yaml:"resolver"`
 	Api       ApiConfig         `yaml:"api"`
 	Amqp      AmqpConfig        `yaml:"amqp"`
 	Redis     RedisConfig       `yaml:"redis"`

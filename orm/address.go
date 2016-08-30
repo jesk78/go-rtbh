@@ -38,6 +38,18 @@ func GetAddressById(id int64) Address {
 	return entry
 }
 
+func GetAddressesNoFqdn() []Address {
+	var addrs []Address
+	var err error
+
+	err = Db.Model(&addrs).Where("fqdn = ''").Select()
+	if err != nil {
+		return []Address{}
+	}
+
+	return addrs
+}
+
 func UpdateAddress(addr_s string, fqdn string) Address {
 	var addr Address
 	var err error

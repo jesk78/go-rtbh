@@ -1,18 +1,21 @@
-package main
+package go_rtbh
 
 import (
 	"flag"
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib/resolver"
 	"github.com/r3boot/go-rtbh/lists"
 	"github.com/r3boot/go-rtbh/orm"
 	"github.com/r3boot/go-rtbh/pipeline"
 	"github.com/r3boot/go-rtbh/proto"
 	"github.com/r3boot/rlib/logger"
 	"gopkg.in/pg.v4"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 )
 
 // Program libraries
@@ -21,6 +24,8 @@ var Config *config.Config
 var Amqp *proto.AmqpClient
 var Db *pg.DB
 var Pipeline *pipeline.Pipeline
+var Reaper *pipeline.Reaper
+var Resolver *resolver.Resolver
 
 // OS signals
 var signals chan os.Signal
@@ -41,6 +46,14 @@ func signalHandler(signals chan os.Signal, done chan bool) {
 		Pipeline.Control <- config.CTL_SHUTDOWN
 		<-Pipeline.Done
 
+		Log.Debug("[go-rtbh]: Sending cleanup signal to Reaper")
+		Reaper.Control <- config.CTL_SHUTDOWN
+		<-Reaper.Done
+
+		Log.Debug("[go-rtbh]: Sending cleanup signal to Resolver")
+		Resolver.Control <- config.CTL_SHUTDOWN
+		<-Resolver.Done
+
 		done <- true
 	}
 }
@@ -53,8 +66,10 @@ func init() {
 	Log.UseDebug = *debug
 	Log.UseVerbose = *debug
 	Log.UseTimestamp = *timestamps
-
 	Log.Debug("Debug logging enabled")
+
+	// Setup random number generator
+	rand.Seed(time.Now().UnixNano())
 
 	// Setup configuration library
 	if err = config.Setup(Log); err != nil {
@@ -109,7 +124,16 @@ func init() {
 	if Pipeline, err = pipeline.NewPipeline(config.Ruleset); err != nil {
 		Log.Fatal("[pipeline]: Failed to create new pipeline: " + err.Error())
 	}
-	Log.Debug("[pipeline]: Initialized new pipeline")
+	Log.Debug("[pipeline]: Initialized pipeline")
+
+	if Reaper, err = pipeline.NewReaper("10s"); err != nil {
+		Log.Fatal("[pipeline]: Failed to create new reaper: " + err.Error())
+	}
+	Log.Debug("[pipeline]: Initialized reaper")
+
+	if Resolver, err = resolver.NewResolver(); err != nil {
+		Log.Fatal("[Resolver]: Failed to create dns resolver: " + err.Error())
+	}
 
 	// Configure AMQP client
 	if Amqp, err = proto.NewAmqpClient(); err != nil {
@@ -147,13 +171,21 @@ func main() {
 		proto.AddBGPNeighbor(bgpPeer.Address)
 	}
 
+	// Start pipeline
+	go Pipeline.Startup(input_data)
+	Log.Debug("[go-rtbh]: Event pipeline started")
+
+	// Start reaper
+	go Reaper.Startup()
+	Log.Debug("[go-rtbh]: Blacklist reaper started")
+
+	// Start DNS lookup thread
+	go Resolver.UnknownLookupRoutine()
+	Log.Debug("[go-rtbh]: Dns lookup routine started")
+
 	// Start AMQP event slurper
 	go Amqp.Slurp(input_data)
 	Log.Debug("[go-rtbh]: Amqp event slurper started")
-
-	// Start pipeline
-	go Pipeline.Startup(input_data)
-	Log.Debug("[go-rtbh]: Pipeline started")
 
 	// Wait for program completion
 	<-allDone

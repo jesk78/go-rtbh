@@ -11,7 +11,7 @@ all: clean $(GO_RTBH) $(GO_RTBHAPI) ${GO_BIRDAPI}
 
 $(GO_RTBH):
 	[ ! -d $(BUILD_DIR) ] && mkdir -p $(BUILD_DIR) || true
-	go build -v -o $(BUILD_DIR)/$(GO_RTBH) $(COMMAND_DIR)/$(GO_RTBH)/$(GO_RTBH).go
+	go build -v -o $(BUILD_DIR)/$(GO_RTBH) $(COMMAND_DIR)/$(GO_RTBH).go
 
 $(GO_RTBHAPI):
 	[ ! -d $(BUILD_DIR) ] && mkdir -p $(BUILD_DIR) || true

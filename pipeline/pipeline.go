@@ -2,11 +2,14 @@ package pipeline
 
 import (
 	"github.com/r3boot/go-rtbh/config"
-	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/whitelist"
 	"github.com/r3boot/go-rtbh/lists"
 	"github.com/r3boot/rlib/logger"
 	"regexp"
 )
+
+const MAX_WORKERS int = 8
 
 type Pipeline struct {
 	Control chan int
@@ -16,8 +19,8 @@ type Pipeline struct {
 var Log logger.Log
 var Config *config.Config
 
-var Whitelist lists.Whitelist
-var Blacklist *lists.Blacklist
+var Whitelist *whitelist.Whitelist
+var Blacklist *blacklist.Blacklist
 var History lists.History
 var Ruleset []*regexp.Regexp
 
@@ -31,17 +34,26 @@ func Setup(l logger.Log, cfg *config.Config) (err error) {
 func NewPipeline(ruleset []*regexp.Regexp) (pl *Pipeline, err error) {
 	pl = &Pipeline{}
 	Ruleset = ruleset
+	Whitelist = whitelist.New()
+	Blacklist = blacklist.New()
 
 	return
 }
 
 func (pl *Pipeline) Startup(input chan []byte) (err error) {
+	var worker_queue chan chan []byte
 	var stop_loop bool
-	var event *events.RTBHEvent
+	var worker_id int
 
 	// Bird.ExportPrefixes(Whitelist.GetAll(), Blacklist.GetAll())
 
-	Blacklist = lists.NewBlacklist()
+	worker_queue = make(chan chan []byte, MAX_WORKERS)
+
+	// Startup event workers
+	for worker_id = 1; worker_id <= MAX_WORKERS; worker_id++ {
+		worker := NewEventWorker(worker_id, worker_queue)
+		worker.Start()
+	}
 
 	stop_loop = false
 	for {
@@ -52,41 +64,10 @@ func (pl *Pipeline) Startup(input chan []byte) (err error) {
 		select {
 		case data := <-input:
 			{
-				if event, err = events.NewRTBHEvent(data); err != nil {
-					Log.Warning("[Pipeline] NewEvent: " + err.Error())
-					continue
-				}
-
-				if event.Address == "" {
-					// Log.Debug("[Pipeline]: Failed to parse event: " + string(data))
-					continue
-				}
-
-				if Whitelist.Listed(event.Address) {
-					Log.Warning("[Pipeline]: Host " + event.Address + " is on whitelist")
-					continue
-				}
-
-				if Blacklist.Listed(event.Address) {
-					Log.Warning("[Pipeline]: Host " + event.Address + " is already listed")
-					History.Add(*event)
-					continue
-				}
-
-				if FoundMatch(event.Reason) {
-					event.ExpireIn = "1h"
-
-					if err = Blacklist.Add(*event); err != nil {
-						Log.Warning(err)
-					}
-
-					if err = History.Add(*event); err != nil {
-						Log.Warning(err)
-					}
-
-					Log.Debug("[Pipeline]: Added " + event.Address + " to blacklist because of " + event.Reason)
-					continue
-				}
+				go func() {
+					worker := <-worker_queue
+					worker <- data
+				}()
 			}
 		case cmd := <-pl.Control:
 			{
