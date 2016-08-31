@@ -2,11 +2,21 @@ package events
 
 import (
 	"encoding/json"
-	"time"
 )
 
+type eventTypeDiscovery struct {
+	EventType string `json:"event_type"`
+}
+
+type etAlert struct {
+	SrcIp string `json:"src_ip"`
+	Alert struct {
+		Signature string `json:"signature"`
+	} `json:"alert"`
+}
+
 func (event *RTBHEvent) LoadFrom(data []byte) (err error) {
-	var et EventType
+	var et eventTypeDiscovery
 
 	// First, determine the event type
 	if err = json.Unmarshal(data, &et); err != nil {
@@ -37,17 +47,5 @@ func (event *RTBHEvent) LoadFrom(data []byte) (err error) {
 			Log.Debug("Unknown EventType: " + et.EventType)
 		}
 	}
-	return
-}
-
-func NewRTBHEvent(data []byte) (event *RTBHEvent, err error) {
-	event = &RTBHEvent{
-		AddedAt: time.Now(),
-	}
-
-	if err = event.LoadFrom(data); err != nil {
-		return
-	}
-
 	return
 }

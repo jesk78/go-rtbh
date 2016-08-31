@@ -6,6 +6,7 @@ import (
 	"github.com/r3boot/go-rtbh/lib/amqp"
 	"github.com/r3boot/go-rtbh/lib/bgp"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/history"
 	"github.com/r3boot/go-rtbh/lib/listcache"
 	"github.com/r3boot/go-rtbh/lib/orm"
@@ -38,6 +39,10 @@ func Setup(l logger.Log, c config.Config) (err error) {
 	Config = c
 
 	// First, configure all dependencies
+	if err = events.Setup(Log, Config); err != nil {
+		return
+	}
+
 	if Config.Redis.Address == "" && Config.Amqp.Address == "" {
 		err = errors.New(MYNAME + ": No event feed to connect to")
 	}

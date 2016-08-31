@@ -2,7 +2,7 @@ package pipeline
 
 import (
 	"fmt"
-	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib/events"
 	"regexp"
 )
 
@@ -57,7 +57,7 @@ func (w *Worker) Start() {
 			case data = <-w.Work:
 				{
 					Log.Debug(MYNAME + "." + w.Myname + ": Processing new event")
-					if event, err = events.NewRTBHEvent(data); err != nil {
+					if event, err = events.NewEvent(data); err != nil {
 						Log.Warning(MYNAME + "." + w.Myname + ": Failed to prepare event" + err.Error())
 						continue
 					}
