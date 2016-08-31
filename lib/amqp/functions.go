@@ -85,7 +85,8 @@ func (a *AmqpClient) Slurp(input chan []byte) (err error) {
 		false,        // No-wait consumer
 		nil,          // No arguments
 	)
-	Log.Debug("[Amqp]: Ready to consume messages")
+
+	Log.Debug(MYNAME + ": Reading from event queue")
 
 	// Start amqp eventloop
 	stop_loop = false

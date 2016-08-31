@@ -2,7 +2,7 @@ package history
 
 import (
 	"errors"
-	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/orm"
 )
 

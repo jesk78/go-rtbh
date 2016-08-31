@@ -1,6 +1,7 @@
 package blacklist
 
 import (
+	"github.com/r3boot/go-rtbh/lib/bgp"
 	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/listcache"
 	"github.com/r3boot/rlib/logger"
@@ -10,12 +11,13 @@ const MYNAME string = "Blacklist"
 
 type Blacklist struct {
 	cache *listcache.Cache
+	bgp   *bgp.BGP
 }
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
@@ -23,11 +25,12 @@ func Setup(l logger.Log, c config.Config) (err error) {
 	return
 }
 
-func New() *Blacklist {
+func New(b *bgp.BGP) *Blacklist {
 	var bl *Blacklist
 
 	bl = &Blacklist{
 		cache: listcache.New(),
+		bgp:   b,
 	}
 
 	return bl

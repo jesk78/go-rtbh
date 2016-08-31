@@ -8,7 +8,7 @@ import (
 
 const MYNAME string = "Redis"
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
 type RedisClient struct {
@@ -18,10 +18,11 @@ type RedisClient struct {
 	Done    chan bool
 }
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 

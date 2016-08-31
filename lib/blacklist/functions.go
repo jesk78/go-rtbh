@@ -2,10 +2,9 @@ package blacklist
 
 import (
 	"errors"
-	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/orm"
 	"github.com/r3boot/go-rtbh/lib/resolver"
-	"github.com/r3boot/go-rtbh/proto"
 )
 
 func (bl *Blacklist) Add(event events.RTBHEvent) (err error) {
@@ -46,7 +45,7 @@ func (bl *Blacklist) Add(event events.RTBHEvent) (err error) {
 	}
 
 	Log.Debug("Adding BGP route")
-	proto.AddBGPRoute(addr.Addr)
+	bl.bgp.AddRoute(addr.Addr)
 
 	bl.cache.Add(addr.Addr, entry)
 
@@ -68,7 +67,7 @@ func (bl *Blacklist) Remove(addr string) (err error) {
 		return
 	}
 
-	proto.RemoveBGPRoute(addr)
+	bl.bgp.RemoveRoute(addr)
 
 	return
 }

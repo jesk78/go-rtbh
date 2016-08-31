@@ -3,8 +3,10 @@ package bgp
 import (
 	"errors"
 	"github.com/r3boot/go-rtbh/lib/bgp/bgp2go"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Configure this side of the BGP routine
@@ -45,15 +47,22 @@ func (bgp *BGP) Configure() (err error) {
 }
 
 func (bgp *BGP) ServerRoutine() {
+	var bgpPeer config.BGPPeer
+
 	bgp.cmdToPeer = make(chan bgp2go.BGPProcessMsg)
 	bgp.cmdFromPeer = make(chan bgp2go.BGPProcessMsg)
 
-	Log.Debug(MYNAME + ": Starting BGP routine")
+	Log.Debug(MYNAME + ": Starting ServerRoutine")
 	go bgp2go.StartBGPProcess(bgp.cmdToPeer, bgp.cmdFromPeer, bgp.context)
+
+	time.Sleep(1 * time.Second)
+	for _, bgpPeer = range Config.BGP.Peers {
+		Log.Debug(MYNAME + ": Adding BGP neighbor " + bgpPeer.Address + " as " + Config.BGP.Asnum)
+		bgp.AddNeighbor(bgpPeer.Address)
+	}
 }
 
 func (bgp *BGP) addv4Neighbor(ipaddr string) {
-	Log.Debug(MYNAME + ": Adding IPv4 BGP neighbor")
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet",
@@ -61,7 +70,6 @@ func (bgp *BGP) addv4Neighbor(ipaddr string) {
 }
 
 func (bgp *BGP) addv6Neighbor(ipaddr string) {
-	Log.Debug(MYNAME + ": Adding IPv6 BGP neighbor")
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet6",

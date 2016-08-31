@@ -1,31 +1,44 @@
-package go_rtbh
+package main
 
 import (
+	"errors"
 	"flag"
-	"github.com/r3boot/go-rtbh/config"
-	"github.com/r3boot/go-rtbh/events"
-	"github.com/r3boot/go-rtbh/lib"
+	"github.com/r3boot/go-rtbh/lib/amqp"
+	"github.com/r3boot/go-rtbh/lib/bgp"
+	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/config"
+	"github.com/r3boot/go-rtbh/lib/events"
+	"github.com/r3boot/go-rtbh/lib/history"
+	"github.com/r3boot/go-rtbh/lib/listcache"
 	"github.com/r3boot/go-rtbh/lib/orm"
 	"github.com/r3boot/go-rtbh/lib/pipeline"
+	"github.com/r3boot/go-rtbh/lib/reaper"
+	"github.com/r3boot/go-rtbh/lib/redis"
 	"github.com/r3boot/go-rtbh/lib/resolver"
-	"github.com/r3boot/go-rtbh/proto"
+	"github.com/r3boot/go-rtbh/lib/whitelist"
 	"github.com/r3boot/rlib/logger"
-	"gopkg.in/pg.v4"
 	"math/rand"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 )
 
+const MYNAME string = "go-rtbh"
+
 // Program libraries
-var Log logger.Log
 var Config *config.Config
-var Amqp *proto.AmqpClient
-var Db *pg.DB
-var Pipeline *pipeline.Pipeline
-var Reaper *pipeline.Reaper
+var Log logger.Log
+
+var AmqpClient *amqp.AmqpClient
+var RedisClient *redis.RedisClient
+var Blacklist *blacklist.Blacklist
+var Whitelist *whitelist.Whitelist
+var History *history.History
 var Resolver *resolver.Resolver
+var Reaper *reaper.Reaper
+var Pipeline *pipeline.Pipeline
+var BGP *bgp.BGP
+var ORM *orm.ORM
 
 // OS signals
 var signals chan os.Signal
@@ -38,21 +51,23 @@ var timestamps = flag.Bool("T", config.D_TIMESTAMP, "Enable timestamps in output
 
 func signalHandler(signals chan os.Signal, done chan bool) {
 	for _ = range signals {
-		Log.Debug("[go-rtbh]: Sending cleanup signal to Amqp")
-		Amqp.Control <- config.CTL_SHUTDOWN
-		<-Amqp.Done
+		Log.Debug(MYNAME + ": Sending cleanup signal to Amqp")
+		AmqpClient.Control <- config.CTL_SHUTDOWN
+		<-AmqpClient.Done
 
-		Log.Debug("[go-rtbh]: Sending cleanup signal to Pipeline")
+		Log.Debug(MYNAME + ": Sending cleanup signal to Pipeline")
 		Pipeline.Control <- config.CTL_SHUTDOWN
 		<-Pipeline.Done
 
-		Log.Debug("[go-rtbh]: Sending cleanup signal to Reaper")
+		Log.Debug(MYNAME + ": Sending cleanup signal to Reaper")
 		Reaper.Control <- config.CTL_SHUTDOWN
 		<-Reaper.Done
 
-		Log.Debug("[go-rtbh]: Sending cleanup signal to Resolver")
-		Resolver.Control <- config.CTL_SHUTDOWN
-		<-Resolver.Done
+		if Config.General.Resolver.Enabled {
+			Log.Debug(MYNAME + ": Sending cleanup signal to Resolver")
+			Resolver.Control <- config.CTL_SHUTDOWN
+			<-Resolver.Done
+		}
 
 		done <- true
 	}
@@ -66,69 +81,91 @@ func init() {
 	Log.UseDebug = *debug
 	Log.UseVerbose = *debug
 	Log.UseTimestamp = *timestamps
-	Log.Debug("Debug logging enabled")
+	Log.Debug(MYNAME + ": Debug logging enabled")
 
 	// Setup random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	// Setup configuration library
+	// First, configure all dependencies
 	if err = config.Setup(Log); err != nil {
-		Log.Fatal("[config]: Initialization failed: " + err.Error())
-	}
-	Log.Debug("[config]: Library initialized")
-
-	// Generate configuration struct and try to load configuration
-	if Config, err = config.NewConfig(); err != nil {
-		Log.Fatal("[config]: Failed to create empty configuration: " + err.Error())
-	}
-
-	if err = Config.LoadFrom(*cfgfile); err != nil {
 		Log.Fatal(err)
 	}
-	Log.Debug("Loaded configuration from " + *cfgfile)
-	Log.Debug("Loaded " + strconv.Itoa(len(config.Ruleset)) + " rules")
+	Config = config.New(*cfgfile)
 
-	// Setup events
-	events.Setup(Log)
-	Log.Debug("[events]: Library initialized")
-
-	// Setup protocol library
-	if err = proto.Setup(Log, Config); err != nil {
-		Log.Fatal("[proto]: Initialization failed: " + err.Error())
-	}
-	Log.Debug("[proto]: Library initialized")
-
-	// Setup postgresql client
-	if Db, err = proto.ConnectToPostgresql(); err != nil {
+	if err = events.Setup(Log, Config); err != nil {
 		Log.Fatal(err)
 	}
-	Log.Debug("[postgresql]: Connected to " + Config.Database.Username + ":****@" + Config.Database.Address + "/" + Config.Database.Name)
 
-	if err = orm.Setup(Log, Db); err != nil {
-		Log.Fatal("[orm]: Initialization failed: " + err.Error())
-	}
-	Log.Debug("[orm]: Library initialized")
-
-	// Setup all submodules
-	if err = lib.Setup(Log, Config); err != nil {
-		Log.Fatal("Library initialization failed: " + err.Error())
-	}
-
-	// Configure AMQP client
-	if Amqp, err = proto.NewAmqpClient(); err != nil {
+	if Config.Redis.Address == "" && Config.Amqp.Address == "" {
+		err = errors.New(MYNAME + ": No event feed to connect to")
 		Log.Fatal(err)
 	}
-	Log.Debug("[Amqp]: Connected to " + Config.Amqp.Address)
 
-	// Configure BGP routine
-	if err = proto.ConfigureBGP(); err != nil {
+	if Config.Amqp.Address != "" {
+		if err = amqp.Setup(Log, Config); err != nil {
+			Log.Fatal(err)
+		}
+		AmqpClient = amqp.New()
+	}
+
+	if Config.Redis.Address != "" {
+		if err = redis.Setup(Log, Config); err != nil {
+			Log.Fatal(err)
+		}
+		RedisClient = redis.New()
+	}
+
+	if err = orm.Setup(Log, Config); err != nil {
 		Log.Fatal(err)
 	}
-	Log.Debug("[BGP]: Library initialized")
+	ORM = orm.New()
+
+	if err = bgp.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	BGP = bgp.New()
+
+	// Then, setup all blacklist related libs
+	if err = listcache.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+
+	if err = blacklist.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	Blacklist = blacklist.New(BGP)
+
+	if err = whitelist.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	Whitelist = whitelist.New(BGP)
+
+	if err = history.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	History = history.New()
+
+	if err = resolver.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	if Resolver, err = resolver.New(); err != nil {
+		Log.Fatal(err)
+	}
+
+	if err = reaper.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	Reaper = reaper.New(Blacklist)
+
+	if err = pipeline.Setup(Log, Config); err != nil {
+		Log.Fatal(err)
+	}
+	Pipeline = pipeline.New(Blacklist, Whitelist, History)
+
+	Log.Debug(MYNAME + ": All modules initialized")
 }
 
 func main() {
-	var bgpPeer config.BGPPeer
 	var input_data chan []byte
 
 	input_data = make(chan []byte, config.D_INPUT_BUFSIZE)
@@ -138,35 +175,24 @@ func main() {
 	allDone = make(chan bool)
 	signal.Notify(signals, os.Interrupt, os.Kill)
 	go signalHandler(signals, allDone)
-	Log.Debug("[go-rtbh]: Started OS signal handler")
+	Log.Debug(MYNAME + ": Started OS signal handler")
 
 	// Start BGP routine
-	proto.RunBGP()
-	Log.Debug("[go-rtbh]: BGP route injector started")
-
-	// Add BGP neighbors
-	for _, bgpPeer = range Config.BGP.Peers {
-		Log.Debug("[go-rtbh] Adding BGP neighbor " + bgpPeer.Address + " as " + Config.BGP.Asnum)
-		proto.AddBGPNeighbor(bgpPeer.Address)
-	}
+	go BGP.ServerRoutine()
 
 	// Start pipeline
-	go Pipeline.Startup(input_data)
-	Log.Debug("[go-rtbh]: Event pipeline started")
+	go Pipeline.WorkManagerRoutine(input_data)
 
 	// Start reaper
-	go Reaper.Startup()
-	Log.Debug("[go-rtbh]: Blacklist reaper started")
+	go Reaper.CleanupExpiredRoutine()
 
 	// Start DNS lookup thread
 	go Resolver.UnknownLookupRoutine()
-	Log.Debug("[go-rtbh]: Dns lookup routine started")
 
 	// Start AMQP event slurper
-	go Amqp.Slurp(input_data)
-	Log.Debug("[go-rtbh]: Amqp event slurper started")
+	go AmqpClient.Slurp(input_data)
 
 	// Wait for program completion
 	<-allDone
-	Log.Debug("[go-rtbh]: Program finished")
+	Log.Debug(MYNAME + ": Program finished")
 }

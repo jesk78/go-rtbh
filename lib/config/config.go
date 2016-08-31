@@ -11,6 +11,7 @@ var Log logger.Log
 func Setup(l logger.Log) (err error) {
 	Log = l
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 

@@ -18,7 +18,7 @@ func GetAddress(addr string) Address {
 	var entry Address
 	var err error
 
-	err = Db.Model(&entry).Where("addr = ?", addr).Select()
+	err = db.Model(&entry).Where("addr = ?", addr).Select()
 	if err != nil {
 		return Address{}
 	}
@@ -30,7 +30,7 @@ func GetAddressById(id int64) Address {
 	var entry Address
 	var err error
 
-	err = Db.Model(&entry).Where("id = ?", id).Select()
+	err = db.Model(&entry).Where("id = ?", id).Select()
 	if err != nil {
 		return Address{}
 	}
@@ -42,7 +42,7 @@ func GetAddressesNoFqdn() []Address {
 	var addrs []Address
 	var err error
 
-	err = Db.Model(&addrs).Where("fqdn = ''").Select()
+	err = db.Model(&addrs).Where("fqdn = ''").Select()
 	if err != nil {
 		return []Address{}
 	}
@@ -61,13 +61,13 @@ func UpdateAddress(addr_s string, fqdn string) Address {
 			Fqdn: fqdn,
 		}
 
-		err = Db.Create(&addr)
+		err = db.Create(&addr)
 		if err != nil {
 			Log.Warning("[orm]: UpdateAddress(" + addr_s + "," + fqdn + ") create failed: " + err.Error())
 		}
 
 	} else {
-		err = Db.Update(&addr)
+		err = db.Update(&addr)
 		if err != nil {
 			Log.Warning("[orm]: UpdateAddress(" + addr_s + "," + fqdn + ") update failed: " + err.Error())
 		}

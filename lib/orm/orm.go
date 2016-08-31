@@ -8,17 +8,19 @@ import (
 
 const MYNAME string = "ORM"
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
+var db *pg.DB
+
 type ORM struct {
-	Db *pg.DB
 }
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 

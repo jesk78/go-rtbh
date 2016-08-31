@@ -1,8 +1,8 @@
 package pipeline
 
 import (
-	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/history"
 	"github.com/r3boot/go-rtbh/lib/whitelist"
 	"github.com/r3boot/rlib/logger"
@@ -10,11 +10,10 @@ import (
 
 const MYNAME string = "Pipeline"
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
 type Pipeline struct {
-	ruleset   []*regexp.Regexp
 	blacklist *blacklist.Blacklist
 	whitelist *whitelist.Whitelist
 	history   *history.History
@@ -22,18 +21,18 @@ type Pipeline struct {
 	Done      chan bool
 }
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 
-func New(r []*regexp.Regexp, bl *blacklist.Blacklist, wl *whitelist.Whitelist, h *history.History) *Pipeline {
+func New(bl *blacklist.Blacklist, wl *whitelist.Whitelist, h *history.History) *Pipeline {
 	var pipeline *Pipeline
 
 	pipeline = &Pipeline{
-		ruleset:   r,
 		blacklist: bl,
 		whitelist: wl,
 		history:   h,

@@ -20,7 +20,7 @@ func (obj Blacklist) String() string {
 func (obj Blacklist) Save() bool {
 	var err error
 
-	if err = Db.Create(&obj); err != nil {
+	if err = db.Create(&obj); err != nil {
 		Log.Warning("[orm] " + obj.String() + ".Save() failed: " + err.Error())
 		return false
 	}
@@ -31,7 +31,7 @@ func (obj Blacklist) Save() bool {
 func (obj Blacklist) Remove() bool {
 	var err error
 
-	if err = Db.Delete(&obj); err != nil {
+	if err = db.Delete(&obj); err != nil {
 		Log.Warning("[orm] " + obj.String() + ".Remove() failed: " + err.Error())
 		return false
 	}
@@ -48,7 +48,7 @@ func GetBlacklistEntry(addr_s string) Blacklist {
 		return Blacklist{}
 	}
 
-	err = Db.Model(&entry).Where(T_BLACKLIST+".addr_id = ?", addr.Id).Select()
+	err = db.Model(&entry).Where(T_BLACKLIST+".addr_id = ?", addr.Id).Select()
 	if err != nil {
 		return Blacklist{}
 	}

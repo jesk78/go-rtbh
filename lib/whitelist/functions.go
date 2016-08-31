@@ -2,9 +2,8 @@ package whitelist
 
 import (
 	"errors"
-	"github.com/r3boot/go-rtbh/events"
+	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/orm"
-	"github.com/r3boot/go-rtbh/proto"
 	"net"
 )
 
@@ -17,14 +16,14 @@ func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 	)
 
 	if names, err = net.LookupAddr(entry.Address); err != nil {
-		Log.Warning("[Whitelist]: Failed to lookup fqdn for " + entry.Address)
+		Log.Warning(MYNAME + ": Failed to lookup fqdn for " + entry.Address)
 		fqdn = "unknown"
 	} else {
 		fqdn = names[0]
 	}
 
 	if len(names) > 1 {
-		Log.Warning("[Whitelist.Add]: Multiple hosts found for " + entry.Address + " using " + fqdn)
+		Log.Warning(MYNAME + ": Multiple hosts found for " + entry.Address + " using " + fqdn)
 	}
 
 	if addr = orm.UpdateAddress(entry.Address, fqdn); addr.Addr == "" {
@@ -39,7 +38,7 @@ func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 		return
 	}
 
-	proto.RemoveBGPRoute(entry.Address)
+	wl.bgp.RemoveRoute(entry.Address)
 
 	wl.cache.Add(entry.Address, entry)
 
@@ -50,14 +49,14 @@ func (wl *Whitelist) Remove(addr string) (err error) {
 	var entry orm.Whitelist
 
 	if entry = orm.GetWhitelistEntry(addr); entry.Address.Addr == "" {
-		err = errors.New("[Whitelist.Remove]: Failed to retrieve address")
+		err = errors.New(MYNAME + ": Failed to retrieve address")
 		return
 	}
 
 	wl.cache.Remove(addr)
 
 	if ok := entry.Remove(); !ok {
-		err = errors.New("[Whitelist.Remove]: Failed to remove entry")
+		err = errors.New(MYNAME + ": Failed to remove entry")
 	}
 
 	return

@@ -1,14 +1,14 @@
 package bgp
 
 import (
-	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/bgp/bgp2go"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/rlib/logger"
 )
 
 const MYNAME string = "BGP"
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
 type BGP struct {
@@ -17,10 +17,11 @@ type BGP struct {
 	cmdFromPeer chan bgp2go.BGPProcessMsg
 }
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 

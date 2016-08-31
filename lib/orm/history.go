@@ -19,7 +19,7 @@ func (obj History) String() string {
 func (obj History) Save() bool {
 	var err error
 
-	if err = Db.Create(&obj); err != nil {
+	if err = db.Create(&obj); err != nil {
 		Log.Warning("[orm]: " + obj.String() + ".Save() failed: " + err.Error())
 		return false
 	}
@@ -37,7 +37,7 @@ func GetHistoryEntries(addr_s string) []History {
 		return []History{}
 	}
 
-	err = Db.Model(&entries).Where("?.addr_id = ?", T_HISTORY, addr.Id).Select()
+	err = db.Model(&entries).Where("?.addr_id = ?", T_HISTORY, addr.Id).Select()
 	if err != nil {
 		Log.Warning("[orm]: GetHistoryEntries(" + addr_s + ") failed: " + err.Error())
 		return []History{}

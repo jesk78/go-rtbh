@@ -2,11 +2,6 @@ package pipeline
 
 import (
 	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/go-rtbh/lib/blacklist"
-	"github.com/r3boot/go-rtbh/lib/history"
-	"github.com/r3boot/go-rtbh/lib/whitelist"
-	"github.com/r3boot/rlib/logger"
-	"regexp"
 )
 
 func (pl *Pipeline) WorkManagerRoutine(input chan []byte) (err error) {
@@ -19,11 +14,12 @@ func (pl *Pipeline) WorkManagerRoutine(input chan []byte) (err error) {
 	worker_queue = make(chan chan []byte, Config.General.NumWorkers)
 
 	// Startup event workers
-	for worker_id = 1; worker_id <= MAX_WORKERS; worker_id++ {
-		worker := NewEventWorker(worker_id, worker_queue)
+	for worker_id = 1; worker_id <= Config.General.NumWorkers; worker_id++ {
+		worker := NewEventWorker(worker_id, pl, worker_queue)
 		worker.Start()
 	}
 
+	Log.Debug(MYNAME + ": Starting WorkManagerRoutine")
 	stop_loop = false
 	for {
 		if stop_loop {

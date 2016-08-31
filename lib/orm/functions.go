@@ -1,13 +1,14 @@
 package orm
 
 import (
+	"errors"
 	"gopkg.in/pg.v4"
 )
 
 func (orm *ORM) Connect() (err error) {
 	var schema_query string
 
-	orm.Db = pg.Connect(&pg.Options{
+	db = pg.Connect(&pg.Options{
 		Addr:     Config.Database.Address,
 		User:     Config.Database.Username,
 		Password: Config.Database.Password,
@@ -18,9 +19,10 @@ func (orm *ORM) Connect() (err error) {
 		err = errors.New(MYNAME + ": Failed to connect to database")
 		return
 	}
+	Log.Debug(MYNAME + ": Connected to pg://" + Config.Database.Username + ":***@" + Config.Database.Address + "/" + Config.Database.Name)
 
 	for _, schema_query = range database_schema {
-		if _, err = orm.Db.Exec(schema_query); err != nil {
+		if _, err = db.Exec(schema_query); err != nil {
 			err = errors.New(MYNAME + ": Failed to update DB schema: " + err.Error())
 			return
 		}

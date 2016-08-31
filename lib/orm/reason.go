@@ -17,7 +17,7 @@ func GetReason(reason string) Reason {
 	var entry Reason
 	var err error
 
-	err = Db.Model(&entry).Where("reason = ?", reason).Select()
+	err = db.Model(&entry).Where("reason = ?", reason).Select()
 	if err != nil {
 		return Reason{}
 	}
@@ -35,12 +35,12 @@ func UpdateReason(reason_s string) Reason {
 			Reason: reason_s,
 		}
 
-		err = Db.Create(&reason)
+		err = db.Create(&reason)
 		if err != nil {
 			Log.Warning("[orm]: UpdateReason(" + reason_s + ") create failed: " + err.Error())
 		}
 	} else {
-		err = Db.Update(&reason)
+		err = db.Update(&reason)
 		if err != nil {
 			Log.Warning("[orm]: UpdateReason(" + reason_s + ") update failed: " + err.Error())
 		}

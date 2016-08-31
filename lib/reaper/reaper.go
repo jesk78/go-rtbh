@@ -2,15 +2,15 @@ package reaper
 
 import (
 	"errors"
-	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/rlib/logger"
 	"time"
 )
 
 const MYNAME string = "Reaper"
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
 type Reaper struct {
@@ -20,10 +20,11 @@ type Reaper struct {
 	blacklist *blacklist.Blacklist
 }
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 

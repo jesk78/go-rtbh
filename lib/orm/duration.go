@@ -17,7 +17,7 @@ func GetDuration(duration string) Duration {
 	var entry Duration
 	var err error
 
-	err = Db.Model(&entry).Where("duration = ?", duration).Select()
+	err = db.Model(&entry).Where("duration = ?", duration).Select()
 	if err != nil {
 		return Duration{}
 	}
@@ -35,12 +35,12 @@ func UpdateDuration(duration_s string) Duration {
 			Duration: duration_s,
 		}
 
-		err = Db.Create(&duration)
+		err = db.Create(&duration)
 		if err != nil {
 			Log.Warning("[orm]: UpdateDuration(" + duration_s + ") create failed: " + err.Error())
 		}
 	} else {
-		err = Db.Update(&duration)
+		err = db.Update(&duration)
 		if err != nil {
 			Log.Warning("[orm]: UpdateDuration(" + duration_s + ") update failed: " + err.Error())
 		}

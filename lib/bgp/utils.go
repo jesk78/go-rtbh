@@ -1,7 +1,6 @@
 package bgp
 
 import (
-	"net"
 	"strconv"
 	"strings"
 )

@@ -8,7 +8,7 @@ import (
 
 const MYNAME string = "ListCache"
 
-var Config config.Config
+var Config *config.Config
 var Log logger.Log
 
 type Cache struct {
@@ -16,10 +16,11 @@ type Cache struct {
 	mutex *sync.Mutex
 }
 
-func Setup(l logger.Log, c config.Config) (err error) {
+func Setup(l logger.Log, c *config.Config) (err error) {
 	Log = l
 	Config = c
 
+	Log.Debug(MYNAME + ": Module initialized")
 	return
 }
 

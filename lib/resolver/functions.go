@@ -2,7 +2,7 @@ package resolver
 
 import (
 	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/go-rtbh/orm"
+	"github.com/r3boot/go-rtbh/lib/orm"
 	"math/rand"
 	"net"
 	"time"
@@ -92,6 +92,7 @@ func (r *Resolver) UnknownLookupRoutine() (err error) {
 	t_now = time.Now()
 	t_tick = t_now.Add(time.Duration(rand.Int63n(MAX_SLEEP_INTERVAL)))
 
+	Log.Debug(MYNAME + ": Starting UnknownLookupRoutine")
 	stop_loop = false
 	for {
 		if stop_loop {
