@@ -23,3 +23,15 @@ func Setup(l logger.Log, c config.Config) (err error) {
 
 	return
 }
+
+func New() *BGP {
+	var bgp *BGP
+	var err error
+
+	bgp = &BGP{}
+	if err = bgp.Configure(); err != nil {
+		return nil
+	}
+
+	return bgp
+}

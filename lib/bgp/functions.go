@@ -13,7 +13,7 @@ func (bgp *BGP) Configure() (err error) {
 
 	// Convert asnum string into uint64 for later use
 	if asnum, err = strconv.ParseUint(Config.BGP.Asnum, 10, 32); err != nil {
-		err = errors.New("[ConfigureBGP]: Failed to parse Asnum: " + err.Error())
+		err = errors.New(MYNAME + ": Failed to parse Asnum: " + err.Error())
 		return
 	}
 
@@ -22,19 +22,19 @@ func (bgp *BGP) Configure() (err error) {
 
 	bgp.context.RouterID, err = bgp2go.IPv4ToUint32(Config.BGP.RouterId)
 	if err != nil {
-		err = errors.New("[ConfigureBGP]: Failed to parse RouterID: " + err.Error())
+		err = errors.New(MYNAME + ": Failed to parse RouterID: " + err.Error())
 		return
 	}
 
 	bgp.context.NextHop, err = bgp2go.IPv4ToUint32(Config.BGP.NextHop)
 	if err != nil {
-		err = errors.New("[ConfigureBGP]: Failed to parse IPv4 NextHop: " + err.Error())
+		err = errors.New(MYNAME + ": Failed to parse IPv4 NextHop: " + err.Error())
 		return
 	}
 
 	bgp.context.NextHopV6, err = bgp2go.IPv6StringToAddr(Config.BGP.NextHopV6)
 	if err != nil {
-		err = errors.New("[ConfigureBGP]: Failed to parse IPv6 NextHop: " + err.Error())
+		err = errors.New(MYNAME + ": Failed to parse IPv6 NextHop: " + err.Error())
 		return
 	}
 
@@ -48,12 +48,12 @@ func (bgp *BGP) ServerRoutine() {
 	bgp.cmdToPeer = make(chan bgp2go.BGPProcessMsg)
 	bgp.cmdFromPeer = make(chan bgp2go.BGPProcessMsg)
 
-	Log.Debug("Starting BGP routine")
+	Log.Debug(MYNAME + ": Starting BGP routine")
 	go bgp2go.StartBGPProcess(bgp.cmdToPeer, bgp.cmdFromPeer, bgp.context)
 }
 
 func (bgp *BGP) addv4Neighbor(ipaddr string) {
-	Log.Debug("Adding IPv4 BGP neighbor")
+	Log.Debug(MYNAME + ": Adding IPv4 BGP neighbor")
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet",
@@ -61,7 +61,7 @@ func (bgp *BGP) addv4Neighbor(ipaddr string) {
 }
 
 func (bgp *BGP) addv6Neighbor(ipaddr string) {
-	Log.Debug("Adding IPv6 BGP neighbor")
+	Log.Debug(MYNAME + ": Adding IPv6 BGP neighbor")
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet6",

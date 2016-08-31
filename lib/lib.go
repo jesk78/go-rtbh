@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lib/amqp"
+	"github.com/r3boot/go-rtbh/lib/bgp"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
 	"github.com/r3boot/go-rtbh/lib/history"
 	"github.com/r3boot/go-rtbh/lib/listcache"
@@ -29,6 +30,7 @@ var History *history.History
 var Resolver *resolver.Resolver
 var Reaper *reaper.Reaper
 var Pipeline *pipeline.Pipeline
+var BGP *bgp.BGP
 var ORM *orm.ORM
 
 func Setup(l logger.Log, c config.Config) (err error) {
@@ -58,6 +60,11 @@ func Setup(l logger.Log, c config.Config) (err error) {
 		return
 	}
 	ORM = orm.New()
+
+	if err = bgp.Setup(Log, Config); err != nil {
+		return
+	}
+	BGP = bgp.New()
 
 	// Then, setup all blacklist related libs
 	if err = listcache.Setup(Log, Config); err != nil {
