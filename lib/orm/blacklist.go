@@ -8,15 +8,15 @@ import (
 const BLACKLIST string = MYNAME + ".Blacklist"
 
 type Blacklist struct {
-	Id         int64
-	AddrId     int64
-	ReasonId   int64
-	AddedAt    time.Time
-	DurationId int64
+	Id       int64
+	AddrId   int64
+	ReasonId int64
+	AddedAt  time.Time
+	ExpireOn time.Time
 }
 
 func (obj *Blacklist) String() string {
-	return fmt.Sprintf("Blacklist<%d %s %s %s %s>", obj.Id, obj.AddrId, obj.ReasonId, obj.AddedAt, obj.DurationId)
+	return fmt.Sprintf("Blacklist<%d %s %s %s %s>", obj.Id, obj.AddrId, obj.ReasonId, obj.AddedAt, obj.ExpireOn)
 }
 
 func (obj *Blacklist) Save() bool {

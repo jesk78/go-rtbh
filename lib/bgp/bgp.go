@@ -25,13 +25,17 @@ func Setup(l logger.Log, c *config.Config) (err error) {
 	return
 }
 
-func New() *BGP {
-	var bgp *BGP
+func New() BGP {
+	var bgp BGP
 	var err error
 
-	bgp = &BGP{}
+	bgp = BGP{
+		context:     bgp2go.BGPContext{},
+		cmdToPeer:   make(chan bgp2go.BGPProcessMsg),
+		cmdFromPeer: make(chan bgp2go.BGPProcessMsg),
+	}
 	if err = bgp.Configure(); err != nil {
-		return nil
+		Log.Fatal(err)
 	}
 
 	return bgp

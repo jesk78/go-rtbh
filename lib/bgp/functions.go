@@ -57,12 +57,12 @@ func (bgp *BGP) ServerRoutine() {
 
 	time.Sleep(1 * time.Second)
 	for _, bgpPeer = range Config.BGP.Peers {
-		Log.Debug(MYNAME + ": Adding BGP neighbor " + bgpPeer.Address + " as " + Config.BGP.Asnum)
 		bgp.AddNeighbor(bgpPeer.Address)
 	}
 }
 
 func (bgp *BGP) addv4Neighbor(ipaddr string) {
+	Log.Debug(MYNAME + ": Adding IPv4 neighbor " + ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet",
@@ -70,6 +70,7 @@ func (bgp *BGP) addv4Neighbor(ipaddr string) {
 }
 
 func (bgp *BGP) addv6Neighbor(ipaddr string) {
+	Log.Debug(MYNAME + ": Adding IPv6 neighbor " + ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet6",
@@ -85,6 +86,7 @@ func (bgp *BGP) AddNeighbor(ipaddr string) {
 }
 
 func (bgp *BGP) removev4Neighbor(ipaddr string) {
+	Log.Debug(MYNAME + ": Removing IPv4 neighbor " + ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "RemoveNeighbour",
 		Data: ipaddr + " inet",
@@ -92,6 +94,7 @@ func (bgp *BGP) removev4Neighbor(ipaddr string) {
 }
 
 func (bgp *BGP) removev6Neighbor(ipaddr string) {
+	Log.Debug(MYNAME + ": Removing IPv6 neighbor " + ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "RemoveNeighbour",
 		Data: ipaddr + " inet6",
@@ -107,6 +110,7 @@ func (bgp *BGP) RemoveBGPNeighbor(ipaddr string) {
 }
 
 func (bgp *BGP) addv4Route(prefix string) {
+	Log.Debug(MYNAME + ": Adding IPv4 prefix " + prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddV4Route",
 		Data: prefix,
@@ -114,6 +118,7 @@ func (bgp *BGP) addv4Route(prefix string) {
 }
 
 func (bgp *BGP) addv6Route(prefix string) {
+	Log.Debug(MYNAME + ": Adding IPv6 prefix " + prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddV6Route",
 		Data: prefix,
@@ -121,6 +126,7 @@ func (bgp *BGP) addv6Route(prefix string) {
 }
 
 func (bgp *BGP) AddRoute(prefix string) {
+	Log.Debug(bgp)
 	prefix = add_cidr_mask(prefix)
 	if strings.Contains(prefix, ":") {
 		bgp.addv6Route(prefix)
@@ -130,6 +136,7 @@ func (bgp *BGP) AddRoute(prefix string) {
 }
 
 func (bgp *BGP) removev4Route(prefix string) {
+	Log.Debug(MYNAME + ": Removing IPv4 prefix " + prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "WithdrawV4Route",
 		Data: prefix,
@@ -137,6 +144,7 @@ func (bgp *BGP) removev4Route(prefix string) {
 }
 
 func (bgp *BGP) removev6Route(prefix string) {
+	Log.Debug(MYNAME + ": Removing IPv6 prefix" + prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "WithdrawV6Route",
 		Data: prefix,

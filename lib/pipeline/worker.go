@@ -81,7 +81,7 @@ func (w *Worker) Start() {
 					}
 
 					if w.foundMatch(event.Reason) {
-						event.ExpireIn = "1h"
+						event.ExpireIn = "1m"
 
 						if err = w.parent.blacklist.Add(*event); err != nil {
 							Log.Warning(MYNAME + "." + w.MyName + ": Blacklist.Add failed: " + err.Error())

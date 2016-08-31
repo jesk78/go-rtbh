@@ -26,7 +26,7 @@ func (r *Reaper) CleanupExpiredRoutine() (err error) {
 				switch cmd {
 				case config.CTL_SHUTDOWN:
 					{
-						Log.Debug("Shutting down reaper")
+						Log.Debug(MYNAME + ": Shutting down")
 						stop_loop = true
 						continue
 					}

@@ -18,8 +18,7 @@ const (
 var database_schema []string = []string{
 	"CREATE TABLE IF NOT EXISTS addresses (id SERIAL PRIMARY KEY, addr TEXT UNIQUE NOT NULL, fqdn TEXT NOT NULL)",
 	"CREATE TABLE IF NOT EXISTS reasons (id SERIAL PRIMARY KEY, reason TEXT UNIQUE NOT NULL)",
-	"CREATE TABLE IF NOT EXISTS durations (id SERIAL PRIMARY KEY, duration TEXT UNIQUE NOT NULL)",
-	"CREATE TABLE IF NOT EXISTS blacklists (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), reason_id BIGINT NOT NULL REFERENCES reasons(id), added_at TIMESTAMP NOT NULL, duration_id BIGINT NOT NULL REFERENCES durations(id))",
+	"CREATE TABLE IF NOT EXISTS blacklists (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), reason_id BIGINT NOT NULL REFERENCES reasons(id), added_at TIMESTAMP NOT NULL, expire_on TIMESTAMP NOT NULL)",
 	"CREATE TABLE IF NOT EXISTS whitelists (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), description TEXT NOT NULL)",
-	"CREATE TABLE IF NOT EXISTS histories (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), reason_id BIGINT NOT NULL REFERENCES reasons(id), added_at timestamp)",
+	"CREATE TABLE IF NOT EXISTS histories (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), reason_id BIGINT NOT NULL REFERENCES reasons(id), added_at TIMESTAMP)",
 }

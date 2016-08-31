@@ -37,7 +37,7 @@ var History *history.History
 var Resolver *resolver.Resolver
 var Reaper *reaper.Reaper
 var Pipeline *pipeline.Pipeline
-var BGP *bgp.BGP
+var BGP bgp.BGP
 var ORM *orm.ORM
 
 // OS signals
@@ -133,12 +133,12 @@ func init() {
 	if err = blacklist.Setup(Log, Config); err != nil {
 		Log.Fatal(err)
 	}
-	Blacklist = blacklist.New(BGP)
+	Blacklist = blacklist.New(&BGP)
 
 	if err = whitelist.Setup(Log, Config); err != nil {
 		Log.Fatal(err)
 	}
-	Whitelist = whitelist.New(BGP)
+	Whitelist = whitelist.New(&BGP)
 
 	if err = history.Setup(Log, Config); err != nil {
 		Log.Fatal(err)
