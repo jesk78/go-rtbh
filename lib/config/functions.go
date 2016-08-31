@@ -16,9 +16,6 @@ func NewConfig() (cfg *Config, err error) {
 }
 
 func (cfg *Config) CheckAndSetDefaults() {
-	if cfg.Redis.Address == "" {
-		cfg.Redis.Address = REDIS_D_ADDR
-	}
 }
 
 func (cfg *Config) CompileRuleset() (err error) {
@@ -26,7 +23,7 @@ func (cfg *Config) CompileRuleset() (err error) {
 
 	for _, rule_data := range cfg.Ruleset {
 		if re, err = regexp.Compile(rule_data); err != nil {
-			Log.Warning("[Rule]: Invalid regexp pattern: " + err.Error())
+			err = errors.New(MYNAME + ": Invalid regexp pattern: " + err.Error())
 			return
 		}
 
@@ -68,12 +65,6 @@ func (cfg *Config) LoadFrom(fname string) (err error) {
 		err = errors.New("[config.LoadFrom]: yaml.Unmarshal(): " + err.Error())
 		return
 	}
-
-	// Set defaults (if not set)
-	cfg.CheckAndSetDefaults()
-
-	// Compile ruleset
-	err = cfg.CompileRuleset()
 
 	return
 }

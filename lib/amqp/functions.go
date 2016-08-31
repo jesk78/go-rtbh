@@ -2,7 +2,7 @@ package amqp
 
 import (
 	"errors"
-	"github.com/r3boot/go-rtbh/config"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/streadway/amqp"
 )
 

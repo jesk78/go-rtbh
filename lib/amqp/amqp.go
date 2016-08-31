@@ -1,7 +1,7 @@
 package amqp
 
 import (
-	"github.com/r3boot/go-rtbh/config"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/rlib/logger"
 	"github.com/streadway/amqp"
 )

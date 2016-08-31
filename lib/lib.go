@@ -2,10 +2,10 @@ package lib
 
 import (
 	"errors"
-	"github.com/r3boot/go-rtbh/config"
 	"github.com/r3boot/go-rtbh/lib/amqp"
 	"github.com/r3boot/go-rtbh/lib/bgp"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/history"
 	"github.com/r3boot/go-rtbh/lib/listcache"
@@ -39,6 +39,11 @@ func Setup(l logger.Log, c config.Config) (err error) {
 	Config = c
 
 	// First, configure all dependencies
+	if err = config.Setup(Log); err != nil {
+		return
+	}
+	Config = config.New(*cfgfile)
+
 	if err = events.Setup(Log, Config); err != nil {
 		return
 	}

@@ -1,7 +1,7 @@
 package pipeline
 
 import (
-	"github.com/r3boot/go-rtbh/config"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
 	"github.com/r3boot/go-rtbh/lib/history"
 	"github.com/r3boot/go-rtbh/lib/whitelist"

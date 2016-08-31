@@ -1,7 +1,7 @@
 package reaper
 
 import (
-	"github.com/r3boot/go-rtbh/config"
+	"github.com/r3boot/go-rtbh/lib/config"
 	"time"
 )
 
