@@ -4,45 +4,49 @@ import (
 	"fmt"
 )
 
+const DURATION string = MYNAME + ".Duration"
+
 type Duration struct {
 	Id       int64
 	Duration string
 }
 
-func (obj Duration) String() string {
+func (obj *Duration) String() string {
 	return fmt.Sprintf("Duration<%d %s>", obj.Id, obj.Duration)
 }
 
-func GetDuration(duration string) Duration {
-	var entry Duration
+func GetDuration(duration string) *Duration {
+	var entry *Duration
 	var err error
 
-	err = db.Model(&entry).Where("duration = ?", duration).Select()
+	entry = &Duration{}
+	err = db.Model(entry).Where("duration = ?", duration).Select()
 	if err != nil {
-		return Duration{}
+		Log.Debug(DURATION + ": Failed to lookup duration for " + duration + ": " + err.Error())
+		return nil
 	}
 
 	return entry
 }
 
-func UpdateDuration(duration_s string) Duration {
-	var duration Duration
+func UpdateDuration(duration_s string) *Duration {
+	var duration *Duration
 	var err error
 
 	duration = GetDuration(duration_s)
-	if duration.Duration == "" {
-		duration = Duration{
+	if duration == nil {
+		duration = &Duration{
 			Duration: duration_s,
 		}
 
-		err = db.Create(&duration)
+		err = db.Create(duration)
 		if err != nil {
-			Log.Warning("[orm]: UpdateDuration(" + duration_s + ") create failed: " + err.Error())
+			Log.Fatal(DURATION + ".UpdateDuration(" + duration_s + ") create failed: " + err.Error())
 		}
 	} else {
-		err = db.Update(&duration)
+		err = db.Update(duration)
 		if err != nil {
-			Log.Warning("[orm]: UpdateDuration(" + duration_s + ") update failed: " + err.Error())
+			Log.Fatal(DURATION + ".UpdateDuration(" + duration_s + ") update failed: " + err.Error())
 		}
 	}
 

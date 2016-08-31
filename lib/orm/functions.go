@@ -23,8 +23,8 @@ func (orm *ORM) Connect() (err error) {
 
 	for _, schema_query = range database_schema {
 		if _, err = db.Exec(schema_query); err != nil {
-			err = errors.New(MYNAME + ": Failed to update DB schema: " + err.Error())
-			return
+			Log.Debug(schema_query)
+			Log.Fatal(MYNAME + ": Failed to update DB schema: " + err.Error())
 		}
 	}
 

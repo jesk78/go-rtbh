@@ -16,10 +16,10 @@ const (
 )
 
 var database_schema []string = []string{
-	"CREATE TABLE IF NOT EXISTS addresses (id serial, addr text, fqdn text)",
-	"CREATE TABLE IF NOT EXISTS reasons (id serial, reason text)",
-	"CREATE TABLE IF NOT EXISTS durations (id serial, duration text)",
-	"CREATE TABLE IF NOT EXISTS blacklists (id serial, address_id bigint, reason_id bigint, added_at timestamp, duration_id bigint)",
-	"CREATE TABLE IF NOT EXISTS whitelists (id serial, addr_id bigint, description_id text)",
-	"CREATE TABLE IF NOT EXISTS histories (id serial, addr_id bigint, reason_id bigint, added_at timestamp)",
+	"CREATE TABLE IF NOT EXISTS addresses (id SERIAL PRIMARY KEY, addr TEXT UNIQUE NOT NULL, fqdn TEXT NOT NULL)",
+	"CREATE TABLE IF NOT EXISTS reasons (id SERIAL PRIMARY KEY, reason TEXT UNIQUE NOT NULL)",
+	"CREATE TABLE IF NOT EXISTS durations (id SERIAL PRIMARY KEY, duration TEXT UNIQUE NOT NULL)",
+	"CREATE TABLE IF NOT EXISTS blacklists (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), reason_id BIGINT NOT NULL REFERENCES reasons(id), added_at TIMESTAMP NOT NULL, duration_id BIGINT NOT NULL REFERENCES durations(id))",
+	"CREATE TABLE IF NOT EXISTS whitelists (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), description TEXT NOT NULL)",
+	"CREATE TABLE IF NOT EXISTS histories (id SERIAL PRIMARY KEY, addr_id BIGINT NOT NULL REFERENCES addresses(id), reason_id BIGINT NOT NULL REFERENCES reasons(id), added_at timestamp)",
 }

@@ -9,7 +9,7 @@ import (
 
 func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 	var (
-		addr   orm.Address
+		addr   *orm.Address
 		wentry orm.Whitelist
 		names  []string
 		fqdn   string
@@ -31,7 +31,7 @@ func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 	}
 
 	wentry = orm.Whitelist{
-		Address:     &addr,
+		AddrId:      addr.Id,
 		Description: entry.Description,
 	}
 	if ok := wentry.Save(); !ok {
@@ -46,9 +46,9 @@ func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
 }
 
 func (wl *Whitelist) Remove(addr string) (err error) {
-	var entry orm.Whitelist
+	var entry *orm.Whitelist
 
-	if entry = orm.GetWhitelistEntry(addr); entry.Address.Addr == "" {
+	if entry = orm.GetWhitelistEntry(addr); entry == nil {
 		err = errors.New(MYNAME + ": Failed to retrieve address")
 		return
 	}

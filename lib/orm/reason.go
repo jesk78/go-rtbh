@@ -4,45 +4,49 @@ import (
 	"fmt"
 )
 
+const REASON string = MYNAME + ".Reason"
+
 type Reason struct {
 	Id     int64
 	Reason string
 }
 
-func (obj Reason) String() string {
+func (obj *Reason) String() string {
 	return fmt.Sprintf("Reason<%d %s>", obj.Id, obj.Reason)
 }
 
-func GetReason(reason string) Reason {
-	var entry Reason
+func GetReason(reason string) *Reason {
+	var entry *Reason
 	var err error
 
-	err = db.Model(&entry).Where("reason = ?", reason).Select()
+	entry = &Reason{}
+	err = db.Model(entry).Where("reason = ?", reason).Select()
 	if err != nil {
-		return Reason{}
+		Log.Debug(REASON + ": Failed to lookup reason for " + reason + ": " + err.Error())
+		return nil
 	}
 
 	return entry
 }
 
-func UpdateReason(reason_s string) Reason {
-	var reason Reason
+func UpdateReason(reason_s string) *Reason {
+	var reason *Reason
 	var err error
 
 	reason = GetReason(reason_s)
-	if reason.Reason == "" {
-		reason = Reason{
+	if reason == nil {
+		reason = &Reason{
 			Reason: reason_s,
 		}
 
-		err = db.Create(&reason)
+		err = db.Create(reason)
 		if err != nil {
-			Log.Warning("[orm]: UpdateReason(" + reason_s + ") create failed: " + err.Error())
+			Log.Fatal(REASON + ".UpdateReason(" + reason_s + ") create failed: " + err.Error())
 		}
 	} else {
-		err = db.Update(&reason)
+		err = db.Update(reason)
 		if err != nil {
-			Log.Warning("[orm]: UpdateReason(" + reason_s + ") update failed: " + err.Error())
+			Log.Warning(REASON + ".UpdateReason(" + reason_s + ") update failed: " + err.Error())
 		}
 	}
 

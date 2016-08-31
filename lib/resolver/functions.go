@@ -12,7 +12,7 @@ const MAX_SAMPLES int = 100
 const MAX_SLEEP_INTERVAL int64 = 5000
 
 func (r *Resolver) RandomSelectSamples(num int) []string {
-	var addr orm.Address
+	var addr *orm.Address
 	var all_nofqdn []string
 	var sampling []string
 	var sample string

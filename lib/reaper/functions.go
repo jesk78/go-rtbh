@@ -13,7 +13,7 @@ func (r *Reaper) CleanupExpiredRoutine() (err error) {
 	t_now = time.Now()
 	t_tick = t_now.Add(r.Interval)
 
-	Log.Debug(MYNAME + ": Starting CleanupExpiredRoutine")
+	Log.Debug(MYNAME + ": Running CleanupExpiredRoutine every " + Config.General.ReaperInterval)
 	stop_loop = false
 	for {
 		if stop_loop {
