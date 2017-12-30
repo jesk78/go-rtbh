@@ -31,19 +31,19 @@ general:
 api:
   bindip: '0.0.0.0'
   bindport: 8080
-  resources: './api/resources'
+  resources: ./rtbh-webapp
 
 redis:
-  address: 'redis.service.local:6379'
+  address: 'redis.service.as65342:6379'
 
 postgresql:
-  address: 'postgresql.service.local:5432'
+  address: 'postgresql.service.as65342:5432'
   username: 'go-rtbh'
   password: 'go-rtbh'
   name: 'go-rtbh'
 
 amqp:
-  address: 'rabbitmq.service.local:5672'
+  address: 'rabbitmq.service.as65342:5672'
   username: 'go-rtbh'
   password: 'go-rtbh'
   exchange: 'amqp-input'

@@ -1,35 +1,29 @@
 package config
 
 import (
-	"github.com/r3boot/rlib/logger"
+	"fmt"
+
+	"github.com/r3boot/go-rtbh/lib/logger"
 )
 
 const MYNAME string = "Config"
 
-var Log logger.Log
+var log *logger.Logger
 
-func Setup(l logger.Log) (err error) {
-	Log = l
+func NewConfig(l *logger.Logger, cfgfile string) (*Config, error) {
+	log = l
 
-	Log.Debug(MYNAME + ": Module initialized")
-	return
-}
+	cfg := &Config{}
 
-func New(cfgfile string) *Config {
-	var cfg *Config
-	var err error
-
-	cfg = &Config{}
-
-	if err = cfg.LoadFrom(cfgfile); err != nil {
-		Log.Fatal(err)
+	if err := cfg.LoadFrom(cfgfile); err != nil {
+		return nil, fmt.Errorf("NewConfig: %v", err)
 	}
 
 	cfg.CheckAndSetDefaults()
 
-	if err = cfg.CompileRuleset(); err != nil {
-		Log.Fatal(err)
+	if err := cfg.CompileRuleset(); err != nil {
+		return nil, fmt.Errorf("NewConfig: %v", err)
 	}
 
-	return cfg
+	return cfg, nil
 }

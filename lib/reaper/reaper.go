@@ -1,46 +1,30 @@
 package reaper
 
 import (
-	"errors"
+	"fmt"
+	"time"
+
 	"github.com/r3boot/go-rtbh/lib/blacklist"
 	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/rlib/logger"
-	"time"
+	"github.com/r3boot/go-rtbh/lib/logger"
 )
 
-const MYNAME string = "Reaper"
-
-var Config *config.Config
-var Log logger.Log
-
-type Reaper struct {
-	Interval  time.Duration
-	Control   chan int
-	Done      chan bool
-	blacklist *blacklist.Blacklist
-}
-
-func Setup(l logger.Log, c *config.Config) (err error) {
-	Log = l
-	Config = c
-
-	Log.Debug(MYNAME + ": Module initialized")
-	return
-}
-
-func New(bl *blacklist.Blacklist) *Reaper {
-	var reaper *Reaper
+func NewReaper(l *logger.Logger, c *config.Config, bl *blacklist.Blacklist) (*Reaper, error) {
 	var err error
 
-	reaper = &Reaper{
+	log = l
+	cfg = c
+
+	reaper := &Reaper{
 		blacklist: bl,
 	}
 
-	reaper.Interval, err = time.ParseDuration(Config.General.ReaperInterval)
+	reaper.Interval, err = time.ParseDuration(cfg.General.ReaperInterval)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to parse duration: " + err.Error())
-		return nil
+		return nil, fmt.Errorf("NewReaper time.ParseDuration: %v", err)
 	}
 
-	return reaper
+	log.Debugf("Reaper: Module initialized")
+
+	return reaper, nil
 }

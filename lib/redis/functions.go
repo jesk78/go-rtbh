@@ -6,14 +6,14 @@ import (
 
 func (r *RedisClient) Connect() {
 	r.client = redis.NewClient(&redis.Options{
-		Addr:     Config.Redis.Address,
-		Password: Config.Redis.Password,
-		DB:       Config.Redis.Database,
+		Addr:     cfg.Redis.Address,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.Database,
 	})
 
 	if r.client.Ping().Val() == "PONG" {
-		Log.Debug(MYNAME + ": Connected to " + Config.Redis.Address)
+		log.Debugf("RedisClient.Connect: Connected to " + cfg.Redis.Address)
 	} else {
-		Log.Warning(MYNAME + ": Failed to connect to " + Config.Redis.Address)
+		log.Warningf("RedisClient.Connect: Failed to connect to " + cfg.Redis.Address)
 	}
 }

@@ -1,70 +1,68 @@
 package main
 
 import (
-	"errors"
 	"flag"
+	"math/rand"
+	"os"
+	"os/signal"
+	"time"
+
 	"github.com/r3boot/go-rtbh/lib/amqp"
 	"github.com/r3boot/go-rtbh/lib/bgp"
 	"github.com/r3boot/go-rtbh/lib/blacklist"
 	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/history"
-	"github.com/r3boot/go-rtbh/lib/listcache"
+	"github.com/r3boot/go-rtbh/lib/logger"
 	"github.com/r3boot/go-rtbh/lib/orm"
 	"github.com/r3boot/go-rtbh/lib/pipeline"
 	"github.com/r3boot/go-rtbh/lib/reaper"
 	"github.com/r3boot/go-rtbh/lib/redis"
 	"github.com/r3boot/go-rtbh/lib/resolver"
 	"github.com/r3boot/go-rtbh/lib/whitelist"
-	"github.com/r3boot/rlib/logger"
-	"math/rand"
-	"os"
-	"os/signal"
-	"time"
 )
 
-const MYNAME string = "go-rtbh"
+var (
+	// Command-line flags
+	cfgfile    = flag.String("f", config.D_CFGFILE, "Configuration file to use")
+	debug      = flag.Bool("D", config.D_DEBUG, "Enable debug output")
+	timestamps = flag.Bool("T", config.D_TIMESTAMP, "Enable timestamps in output")
 
-// Program libraries
-var Config *config.Config
-var Log logger.Log
+	// Program libraries
+	Config      *config.Config
+	Logger      *logger.Logger
+	AmqpClient  *amqp.AmqpClient
+	RedisClient *redis.RedisClient
+	Blacklist   *blacklist.Blacklist
+	Whitelist   *whitelist.Whitelist
+	History     *history.History
+	Resolver    *resolver.Resolver
+	Reaper      *reaper.Reaper
+	Pipeline    *pipeline.Pipeline
+	BGP         *bgp.BGP
+	ORM         *orm.ORM
 
-var AmqpClient *amqp.AmqpClient
-var RedisClient *redis.RedisClient
-var Blacklist *blacklist.Blacklist
-var Whitelist *whitelist.Whitelist
-var History *history.History
-var Resolver *resolver.Resolver
-var Reaper *reaper.Reaper
-var Pipeline *pipeline.Pipeline
-var BGP bgp.BGP
-var ORM *orm.ORM
-
-// OS signals
-var signals chan os.Signal
-var allDone chan bool
-
-// Command-line flags
-var cfgfile = flag.String("f", config.D_CFGFILE, "Configuration file to use")
-var debug = flag.Bool("D", config.D_DEBUG, "Enable debug output")
-var timestamps = flag.Bool("T", config.D_TIMESTAMP, "Enable timestamps in output")
+	// OS signals
+	signals chan os.Signal
+	allDone chan bool
+)
 
 func signalHandler(signals chan os.Signal, done chan bool) {
-	for _ = range signals {
-		Log.Debug(MYNAME + ": Sending cleanup signal to Amqp")
+	for range signals {
+		Logger.Debugf("main: Sending cleanup signal to Amqp")
 		AmqpClient.Control <- config.CTL_SHUTDOWN
 		<-AmqpClient.Done
 
-		Log.Debug(MYNAME + ": Sending cleanup signal to Pipeline")
+		Logger.Debugf("main: Sending cleanup signal to Pipeline")
 		Pipeline.Control <- config.CTL_SHUTDOWN
 		<-Pipeline.Done
 
-		Log.Debug(MYNAME + ": Sending cleanup signal to Reaper")
+		Logger.Debugf("main: Sending cleanup signal to Reaper")
 		Reaper.Control <- config.CTL_SHUTDOWN
 		<-Reaper.Done
 
 		if Config.General.Resolver.Enabled {
-			Log.Debug(MYNAME + ": Sending cleanup signal to Resolver")
+			Logger.Debugf("main: Sending cleanup signal to Resolver")
 			Resolver.Control <- config.CTL_SHUTDOWN
 			<-Resolver.Done
 		}
@@ -76,93 +74,64 @@ func signalHandler(signals chan os.Signal, done chan bool) {
 func init() {
 	var err error
 
-	flag.Parse()
-
-	Log.UseDebug = *debug
-	Log.UseVerbose = *debug
-	Log.UseTimestamp = *timestamps
-	Log.Debug(MYNAME + ": Debug logging enabled")
-
 	// Setup random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	// First, configure all dependencies
-	if err = config.Setup(Log); err != nil {
-		Log.Fatal(err)
-	}
-	Config = config.New(*cfgfile)
+	flag.Parse()
 
-	if err = events.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
+	Logger = logger.NewLogger(*timestamps, *debug)
+	Logger.Debugf("init: Debug logging enabled")
+
+	// First, configure all dependencies
+	Config, err := config.NewConfig(Logger, *cfgfile)
+	if err != nil {
+		Logger.Fatalf("init: %v", err)
 	}
+
+	events.Setup(Logger, Config)
 
 	if Config.Redis.Address == "" && Config.Amqp.Address == "" {
-		err = errors.New(MYNAME + ": No event feed to connect to")
-		Log.Fatal(err)
+		Logger.Fatalf("init: No event feed to connect to")
 	}
 
 	if Config.Amqp.Address != "" {
-		if err = amqp.Setup(Log, Config); err != nil {
-			Log.Fatal(err)
+		AmqpClient, err = amqp.NewAmqpClient(Logger, Config)
+		if err != nil {
+			Logger.Fatalf("init: %v", err)
 		}
-		AmqpClient = amqp.New()
 	}
 
 	if Config.Redis.Address != "" {
-		if err = redis.Setup(Log, Config); err != nil {
-			Log.Fatal(err)
-		}
-		RedisClient = redis.New()
+		RedisClient = redis.NewRedisClient(Logger, Config)
 	}
 
-	if err = orm.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
+	ORM, err = orm.NewORM(Logger, Config)
+	if err != nil {
+		Logger.Fatalf("init: %v", err)
 	}
-	ORM = orm.New()
 
-	if err = bgp.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
+	BGP, err = bgp.NewBGP(Logger, Config)
+	if err != nil {
+		Logger.Fatalf("init: %v", err)
 	}
-	BGP = bgp.New()
 
 	// Then, setup all blacklist related libs
-	if err = listcache.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
+	Blacklist = blacklist.NewBlacklist(Logger, Config, BGP)
+	Whitelist = whitelist.NewWhitelist(Logger, Config, BGP)
+	History = history.NewHistory(Logger, Config)
+	Pipeline = pipeline.NewPipeline(Logger, Config, Blacklist, Whitelist, History)
+
+	Resolver, err = resolver.NewResolver(Logger, Config)
+	if err != nil {
+		Logger.Fatalf("init: %v", err)
 	}
 
-	if err = blacklist.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
-	}
-	Blacklist = blacklist.New(&BGP)
-
-	if err = whitelist.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
-	}
-	Whitelist = whitelist.New(&BGP)
-
-	if err = history.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
-	}
-	History = history.New()
-
-	if err = resolver.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
-	}
-	if Resolver, err = resolver.New(); err != nil {
-		Log.Fatal(err)
+	Reaper, err = reaper.NewReaper(Logger, Config, Blacklist)
+	if err != nil {
+		Logger.Fatalf("init: %v", err)
 	}
 
-	if err = reaper.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
-	}
-	Reaper = reaper.New(Blacklist)
-
-	if err = pipeline.Setup(Log, Config); err != nil {
-		Log.Fatal(err)
-	}
-	Pipeline = pipeline.New(Blacklist, Whitelist, History)
-
-	Log.Debug(MYNAME + ": All modules initialized")
+	Logger.Debugf("init: All modules initialized")
 }
 
 func main() {
@@ -175,7 +144,7 @@ func main() {
 	allDone = make(chan bool)
 	signal.Notify(signals, os.Interrupt, os.Kill)
 	go signalHandler(signals, allDone)
-	Log.Debug(MYNAME + ": Started OS signal handler")
+	Logger.Debugf("main: Started OS signal handler")
 
 	// Start BGP routine
 	go BGP.ServerRoutine()
@@ -194,5 +163,5 @@ func main() {
 
 	// Wait for program completion
 	<-allDone
-	Log.Debug(MYNAME + ": Program finished")
+	Logger.Debugf("main: Program finished")
 }

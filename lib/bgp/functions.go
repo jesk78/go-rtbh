@@ -1,49 +1,46 @@
 package bgp
 
 import (
-	"errors"
-	"github.com/r3boot/go-rtbh/lib/bgp/bgp2go"
-	"github.com/r3boot/go-rtbh/lib/config"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/r3boot/go-rtbh/lib/bgp/bgp2go"
+	"github.com/r3boot/go-rtbh/lib/config"
 )
 
 // Configure this side of the BGP routine
-func (bgp *BGP) Configure() (err error) {
-	var asnum uint64
-
+func (bgp *BGP) Configure() error {
 	// Convert asnum string into uint64 for later use
-	if asnum, err = strconv.ParseUint(Config.BGP.Asnum, 10, 32); err != nil {
-		err = errors.New(MYNAME + ": Failed to parse Asnum: " + err.Error())
-		return
+	asnum, err := strconv.ParseUint(cfg.BGP.Asnum, 10, 32)
+	if err != nil {
+		return fmt.Errorf("BGP.Configure strconv.ParseUint: %v", err)
+
 	}
 
 	bgp.context.ASN = uint32(asnum)
 	bgp.context.ListenLocal = true
 
-	bgp.context.RouterID, err = bgp2go.IPv4ToUint32(Config.BGP.RouterId)
+	bgp.context.RouterID, err = bgp2go.IPv4ToUint32(cfg.BGP.RouterId)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to parse RouterID: " + err.Error())
-		return
+		return fmt.Errorf("BGP.Configure bgp2go.IPv4ToUint32: %v", err)
 	}
 
-	bgp.context.NextHop, err = bgp2go.IPv4ToUint32(Config.BGP.NextHop)
+	bgp.context.NextHop, err = bgp2go.IPv4ToUint32(cfg.BGP.NextHop)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to parse IPv4 NextHop: " + err.Error())
-		return
+		return fmt.Errorf("BGP.Configure bgp2go.IPv4ToUint32: %v", err)
 	}
 
-	bgp.context.NextHopV6, err = bgp2go.IPv6StringToAddr(Config.BGP.NextHopV6)
+	bgp.context.NextHopV6, err = bgp2go.IPv6StringToAddr(cfg.BGP.NextHopV6)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to parse IPv6 NextHop: " + err.Error())
-		return
+		return fmt.Errorf("BGP.Configure bgp2go.IPv6StringToAddr: %v", err)
 	}
 
-	bgp.context.Community = append(bgp.context.Community, community_aton(Config.BGP.Community))
-	bgp.context.LocalPref = uint32(Config.BGP.LocalPref)
+	bgp.context.Community = append(bgp.context.Community, community_aton(cfg.BGP.Community))
+	bgp.context.LocalPref = uint32(cfg.BGP.LocalPref)
 
-	return
+	return nil
 }
 
 func (bgp *BGP) ServerRoutine() {
@@ -52,17 +49,17 @@ func (bgp *BGP) ServerRoutine() {
 	bgp.cmdToPeer = make(chan bgp2go.BGPProcessMsg)
 	bgp.cmdFromPeer = make(chan bgp2go.BGPProcessMsg)
 
-	Log.Debug(MYNAME + ": Starting ServerRoutine")
+	log.Debugf("BGP.ServerRoutine: Starting bgp process")
 	go bgp2go.StartBGPProcess(bgp.cmdToPeer, bgp.cmdFromPeer, bgp.context)
 
 	time.Sleep(1 * time.Second)
-	for _, bgpPeer = range Config.BGP.Peers {
+	for _, bgpPeer = range cfg.BGP.Peers {
 		bgp.AddNeighbor(bgpPeer.Address)
 	}
 }
 
 func (bgp *BGP) addv4Neighbor(ipaddr string) {
-	Log.Debug(MYNAME + ": Adding IPv4 neighbor " + ipaddr)
+	log.Debugf("BGP.addv4Neighbor: Adding %s", ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet",
@@ -70,7 +67,7 @@ func (bgp *BGP) addv4Neighbor(ipaddr string) {
 }
 
 func (bgp *BGP) addv6Neighbor(ipaddr string) {
-	Log.Debug(MYNAME + ": Adding IPv6 neighbor " + ipaddr)
+	log.Debugf("BGP.addv6Neighbor: Adding %s", ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddNeighbour",
 		Data: ipaddr + " inet6",
@@ -86,7 +83,7 @@ func (bgp *BGP) AddNeighbor(ipaddr string) {
 }
 
 func (bgp *BGP) removev4Neighbor(ipaddr string) {
-	Log.Debug(MYNAME + ": Removing IPv4 neighbor " + ipaddr)
+	log.Debugf("BGP.removev4Neighbor: Removing %s", ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "RemoveNeighbour",
 		Data: ipaddr + " inet",
@@ -94,7 +91,7 @@ func (bgp *BGP) removev4Neighbor(ipaddr string) {
 }
 
 func (bgp *BGP) removev6Neighbor(ipaddr string) {
-	Log.Debug(MYNAME + ": Removing IPv6 neighbor " + ipaddr)
+	log.Debugf("BGP.removev6Neighbor: Removing %s", ipaddr)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "RemoveNeighbour",
 		Data: ipaddr + " inet6",
@@ -110,7 +107,7 @@ func (bgp *BGP) RemoveBGPNeighbor(ipaddr string) {
 }
 
 func (bgp *BGP) addv4Route(prefix string) {
-	Log.Debug(MYNAME + ": Adding IPv4 prefix " + prefix)
+	log.Debugf("BGP.addv4Route: Adding %s", prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddV4Route",
 		Data: prefix,
@@ -118,7 +115,7 @@ func (bgp *BGP) addv4Route(prefix string) {
 }
 
 func (bgp *BGP) addv6Route(prefix string) {
-	Log.Debug(MYNAME + ": Adding IPv6 prefix " + prefix)
+	log.Debugf("BGP.addv6Route: Adding %s", prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "AddV6Route",
 		Data: prefix,
@@ -126,7 +123,6 @@ func (bgp *BGP) addv6Route(prefix string) {
 }
 
 func (bgp *BGP) AddRoute(prefix string) {
-	Log.Debug(bgp)
 	prefix = add_cidr_mask(prefix)
 	if strings.Contains(prefix, ":") {
 		bgp.addv6Route(prefix)
@@ -136,7 +132,7 @@ func (bgp *BGP) AddRoute(prefix string) {
 }
 
 func (bgp *BGP) removev4Route(prefix string) {
-	Log.Debug(MYNAME + ": Removing IPv4 prefix " + prefix)
+	log.Debugf("BGP.removev4Route: Removing %s", prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "WithdrawV4Route",
 		Data: prefix,
@@ -144,7 +140,7 @@ func (bgp *BGP) removev4Route(prefix string) {
 }
 
 func (bgp *BGP) removev6Route(prefix string) {
-	Log.Debug(MYNAME + ": Removing IPv6 prefix" + prefix)
+	log.Debugf("BGP.removev6Route: Removing %s", prefix)
 	bgp.cmdToPeer <- bgp2go.BGPProcessMsg{
 		Cmnd: "WithdrawV6Route",
 		Data: prefix,

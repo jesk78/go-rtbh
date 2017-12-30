@@ -2,10 +2,9 @@ package orm
 
 import (
 	"fmt"
-	"strconv"
-)
 
-const ADDRESS string = MYNAME + ".Address"
+	"github.com/r3boot/go-rtbh/lib/memcache"
+)
 
 type Address struct {
 	Id   int64
@@ -13,58 +12,67 @@ type Address struct {
 	Fqdn string
 }
 
-func (obj *Address) String() string {
+var (
+	cacheAddrOnAddress *memcache.StringCache
+	cacheAddrOnId      *memcache.IntCache
+)
+
+func (obj Address) String() string {
 	return fmt.Sprintf("Address<%d %s %s>", obj.Id, obj.Addr, obj.Fqdn)
 }
 
-func GetAddress(addr string) *Address {
-	var entry *Address
-	var err error
+func GetAddress(addr string) (*Address, error) {
+	entry := &Address{}
 
-	entry = &Address{}
-
-	err = db.Model(entry).Where("addr = ?", addr).Select()
-	if err != nil {
-		Log.Debug(ADDRESS + ": Failed to lookup address for " + addr + ": " + err.Error())
-		return nil
+	if cacheAddrOnAddress.Has(addr) {
+		tmp := cacheAddrOnAddress.Get(addr).(Address)
+		entry = &tmp
+	} else {
+		err := db.Model(entry).Where("addr = ?", addr).Select()
+		if err != nil {
+			return nil, fmt.Errorf("ORM.GetAddress db.Select: %v", err)
+		}
+		cacheAddrOnAddress.Add(addr, entry)
 	}
 
-	return entry
+	return entry, nil
 }
 
-func GetAddressById(id int64) *Address {
-	var entry *Address
-	var err error
+func GetAddressById(id int64) (*Address, error) {
+	entry := &Address{}
 
-	entry = &Address{}
-
-	err = db.Model(entry).Where("id = ?", id).Select()
-	if err != nil {
-		Log.Debug(ADDRESS + ": Failed to lookup address for " + strconv.Itoa(int(id)))
-		return nil
+	if cacheAddrOnId.Has(id) {
+		tmp := cacheAddrOnId.Get(id).(Address)
+		entry = &tmp
+	} else {
+		err := db.Model(entry).Where("id = ?", id).Select()
+		if err != nil {
+			return nil, fmt.Errorf("ORM.GetAddressById db.Select: %v", err)
+		}
+		cacheAddrOnId.Add(id, entry)
 	}
 
-	return entry
+	return entry, nil
 }
 
-func GetAddressesNoFqdn() []*Address {
-	var addrs []*Address
-	var err error
+func GetAddressesNoFqdn() ([]Address, error) {
+	addrs := []Address{}
 
-	err = db.Model(addrs).Where("fqdn = ''").Select()
+	err := db.Model(&addrs).Where("fqdn = ''").Select()
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("ORM.GetAddressNoFqdn db.Select: %v", err)
 	}
 
-	return addrs
+	return addrs, nil
 }
 
-func UpdateAddress(addr_s string, fqdn string) *Address {
-	var addr *Address
-	var err error
+func UpdateAddress(addr_s string, fqdn string) (*Address, error) {
+	addr, err := GetAddress(addr_s)
+	if err != nil {
+		return nil, fmt.Errorf("ORM.UpdateAddress: %v", err)
+	}
 
-	addr = GetAddress(addr_s)
-	if addr == nil {
+	if addr.Addr == "" {
 		addr = &Address{
 			Id:   0,
 			Addr: addr_s,
@@ -73,17 +81,35 @@ func UpdateAddress(addr_s string, fqdn string) *Address {
 
 		err = db.Create(addr)
 		if err != nil {
-			Log.Debug(addr.String())
-			Log.Fatal(ADDRESS + ".UpdateAddress(" + addr_s + "," + fqdn + ") create failed: " + err.Error())
+			return nil, fmt.Errorf("ORM.UpdateAddress db.Create: %v", err)
 		}
+		cacheAddrOnAddress.Add(addr_s, addr)
+		// TODO: Add cacheAddrOnId
 
 	} else {
 		addr.Fqdn = fqdn
 		err = db.Update(addr)
 		if err != nil {
-			Log.Fatal(ADDRESS + ".UpdateAddress(" + addr_s + "," + fqdn + ") update failed: " + err.Error())
+			return nil, fmt.Errorf("ORM.UpdateAddress db.Update: %v", err)
 		}
+		cacheAddrOnAddress.Add(addr_s, addr)
+		cacheAddrOnId.Add(addr.Id, addr)
 	}
 
-	return addr
+	return addr, nil
+}
+
+func WarmupAddressCaches() error {
+	addresses := []Address{}
+	_, err := db.Query(&addresses, "SELECT * FROM addresses")
+	if err != nil {
+		return fmt.Errorf("ORM.WarmupAddressCaches db.Query: %v", err)
+	}
+
+	for _, addr := range addresses {
+		cacheAddrOnAddress.Add(addr.Addr, addr)
+		cacheAddrOnId.Add(addr.Id, addr)
+	}
+
+	return nil
 }

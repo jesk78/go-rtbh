@@ -1,40 +1,23 @@
 package blacklist
 
 import (
+	"sync"
+
 	"github.com/r3boot/go-rtbh/lib/bgp"
 	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/go-rtbh/lib/listcache"
-	"github.com/r3boot/rlib/logger"
-	"sync"
+	"github.com/r3boot/go-rtbh/lib/logger"
 )
 
-const MYNAME string = "Blacklist"
+func NewBlacklist(l *logger.Logger, c *config.Config, b *bgp.BGP) *Blacklist {
+	log = l
+	cfg = c
 
-type Blacklist struct {
-	cache *listcache.Cache
-	bgp   *bgp.BGP
-	mutex *sync.Mutex
-}
-
-var Config *config.Config
-var Log logger.Log
-
-func Setup(l logger.Log, c *config.Config) (err error) {
-	Log = l
-	Config = c
-
-	Log.Debug(MYNAME + ": initialized with entries")
-	return
-}
-
-func New(b *bgp.BGP) *Blacklist {
-	var bl *Blacklist
-
-	bl = &Blacklist{
-		cache: listcache.New(),
+	bl := &Blacklist{
 		bgp:   b,
 		mutex: &sync.Mutex{},
 	}
+
+	log.Debugf("Blacklist: Module initialized")
 
 	return bl
 }

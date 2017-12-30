@@ -1,34 +1,24 @@
 package events
 
 import (
-	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/rlib/logger"
 	"time"
+
+	"github.com/r3boot/go-rtbh/lib/config"
+	"github.com/r3boot/go-rtbh/lib/logger"
 )
 
 const MYNAME string = "Events"
 
-var Config *config.Config
-var Log logger.Log
+var (
+	cfg *config.Config
+	log *logger.Logger
+)
 
-type RTBHEvent struct {
-	Address  string
-	Reason   string
-	AddedAt  time.Time
-	ExpireIn string
-}
+func Setup(l *logger.Logger, c *config.Config) {
+	log = l
+	cfg = c
 
-// Struct containing a whitelist entry
-type RTBHWhiteEntry struct {
-	Address     string
-	Description string
-}
-
-func Setup(l logger.Log, c *config.Config) (err error) {
-	Log = l
-	Config = c
-
-	Log.Debug(MYNAME + ": Module initialized")
+	log.Debugf("Events: Module initialized")
 	return
 }
 

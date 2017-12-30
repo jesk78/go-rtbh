@@ -3,9 +3,9 @@ package orm
 import (
 	"fmt"
 	"time"
-)
 
-const BLACKLIST string = MYNAME + ".Blacklist"
+	"github.com/r3boot/go-rtbh/lib/memcache"
+)
 
 type Blacklist struct {
 	Id       int64
@@ -15,61 +15,99 @@ type Blacklist struct {
 	ExpireOn time.Time
 }
 
+var (
+	cacheBlacklistOnAddress *memcache.StringCache
+	cacheBlacklistOnId      *memcache.IntCache
+)
+
 func (obj *Blacklist) String() string {
 	return fmt.Sprintf("Blacklist<%d %s %s %s %s>", obj.Id, obj.AddrId, obj.ReasonId, obj.AddedAt, obj.ExpireOn)
 }
 
-func (obj *Blacklist) Save() bool {
-	var err error
-
-	if err = db.Create(obj); err != nil {
-		Log.Fatal(BLACKLIST + ": " + obj.String() + ".Save() failed: " + err.Error())
+func (obj *Blacklist) Save(addr_s string) error {
+	err := db.Create(obj)
+	if err != nil {
+		return fmt.Errorf("Blacklist.Save db.Create: %v", err)
 	}
 
-	return true
+	cacheBlacklistOnAddress.Add(addr_s, obj)
+	cacheBlacklistOnId.Add(obj.Id, obj)
+
+	return nil
 }
 
-func (obj *Blacklist) Remove() bool {
-	var err error
+func (obj *Blacklist) Remove() error {
+	addr, err := GetAddressById(obj.AddrId)
+	if err != nil {
+		return fmt.Errorf("Blacklist.Remove: %v", err)
+	}
+
+	if addr.Addr == "" {
+		return fmt.Errorf("Blacklist.Remove: No address record found for object id %d", obj.Id)
+	}
+
+	cacheBlacklistOnAddress.Remove(addr.Addr)
+	cacheBlacklistOnId.Remove(obj.Id)
 
 	if err = db.Delete(obj); err != nil {
-		Log.Fatal(BLACKLIST + ": " + obj.String() + ".Remove() failed: " + err.Error())
-		return false
+		return fmt.Errorf("Blacklist.Remove db.Delete: %v", err)
 	}
 
-	return true
+	return nil
 }
 
-func GetBlacklistEntry(addr_s string) *Blacklist {
-	var addr *Address
-	var entry *Blacklist
-	var err error
+func GetBlacklistEntry(addr_s string) (*Blacklist, error) {
+	entry := &Blacklist{}
 
-	if addr = GetAddress(addr_s); addr == nil {
-		Log.Warning(BLACKLIST + ": Address not found for " + addr_s)
-		return nil
+	if cacheBlacklistOnAddress.Has(addr_s) {
+		entry = cacheBlacklistOnAddress.Get(addr_s).(*Blacklist)
+	} else {
+		addr, err := GetAddress(addr_s)
+		if addr.Addr == "" {
+			return nil, fmt.Errorf("ORM.GetBlacklistEntry: %v", err)
+		}
+
+		err = db.Model(entry).Where(T_BLACKLIST+".addr_id = ?", addr.Id).Select()
+		if err != nil {
+			return nil, fmt.Errorf("ORM.GetBlacklistEntry db.Select: %v", err)
+		}
+
+		cacheBlacklistOnAddress.Add(addr_s, entry)
 	}
 
-	entry = &Blacklist{}
-	err = db.Model(entry).Where(T_BLACKLIST+".addr_id = ?", addr.Id).Select()
-	if err != nil {
-		Log.Debug("err: " + err.Error() + " for addr " + addr.Addr)
-		Log.Debug(entry)
-		Log.Fatal(BLACKLIST + ": Failed to select blacklist entry for " + addr.String())
-	}
-
-	return entry
+	return entry, nil
 }
 
-func GetBlacklistEntryByAddressId(addr_id int64) *Blacklist {
-	var entry *Blacklist
-	var err error
+func GetBlacklistEntries() []Blacklist {
+	entries := []Blacklist{}
 
-	entry = &Blacklist{}
-	err = db.Model(entry).Where(T_BLACKLIST+".addr_id = ?", addr_id).Select()
-	if err != nil {
-		return nil
+	for _, entry := range cacheBlacklistOnAddress.GetAll() {
+		entries = append(entries, entry.(Blacklist))
 	}
 
-	return entry
+	return entries
+}
+
+func WarmupBlacklistCaches() error {
+	entries := []Blacklist{}
+	_, err := db.Query(&entries, "SELECT * FROM blacklists")
+	if err != nil {
+		return fmt.Errorf("ORM.WarmupBlacklistCaches db.Query: %v", err)
+	}
+
+	for _, entry := range entries {
+		addr, err := GetAddressById(entry.AddrId)
+		if err != nil {
+			return fmt.Errorf("ORM.WarmupBlacklistCaches: %v", err)
+		}
+
+		if addr.Addr == "" {
+			return fmt.Errorf("ORM.WarmupBlacklistCaches: Failed to retrieve address for addr_id %", entry.AddrId)
+		}
+
+		cacheBlacklistOnAddress.Add(addr.Addr, entry)
+		cacheBlacklistOnId.Add(entry.AddrId, entry)
+	}
+
+	return nil
 }

@@ -1,50 +1,49 @@
 package amqp
 
 import (
-	"errors"
+	"fmt"
+
 	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/streadway/amqp"
 )
 
-func (a *AmqpClient) Connect() (err error) {
-	var url string
-	var url_d string
+func (a *AmqpClient) Connect() error {
+	var err error
 
-	url = "amqp://" + Config.Amqp.Username + ":" + Config.Amqp.Password + "@" + Config.Amqp.Address
-	url_d = "amqp://" + Config.Amqp.Username + ":***@" + Config.Amqp.Address
+	url := "amqp://" + cfg.Amqp.Username + ":" + cfg.Amqp.Password + "@" + cfg.Amqp.Address
+	url_d := "amqp://" + cfg.Amqp.Username + ":***@" + cfg.Amqp.Address
 
 	// Try to connect to AMQP
-	if a.connection, err = amqp.Dial(url); err != nil {
-		err = errors.New(MYNAME + ": Connection to " + url_d + " failed: " + err.Error())
+	a.connection, err = amqp.Dial(url)
+	if err != nil {
 		a = nil
-		return
+		return fmt.Errorf("AmqpClient.Connect amqp.Dial: %v", err)
 	}
-	Log.Debug(MYNAME + ": Connected to " + url_d)
+	log.Debugf("AmqpClient: Connected to " + url_d)
 
 	// Once established, setup a channel
-	if a.channel, err = a.connection.Channel(); err != nil {
-		err = errors.New(MYNAME + ": Failed to setup a channel: " + err.Error())
-		return
+	a.channel, err = a.connection.Channel()
+	if err != nil {
+		return fmt.Errorf("AmqpClient.Connect connection.Channel: %v", err)
 	}
 
 	// Declare the fanout exchange on the newly created channel
 	err = a.channel.ExchangeDeclare(
-		Config.Amqp.Exchange, // Name of the exchange
-		"fanout",             // Type of exchange
-		true,                 // Durable queue
-		false,                // Not auto-deleted
-		false,                // Not an internal queue
-		false,                // No-wait queue
-		nil,                  // Arguments
+		cfg.Amqp.Exchange, // Name of the exchange
+		"fanout",          // Type of exchange
+		true,              // Durable queue
+		false,             // Not auto-deleted
+		false,             // Not an internal queue
+		false,             // No-wait queue
+		nil,               // Arguments
 	)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to declare an exchange: " + err.Error())
-		return
+		return fmt.Errorf("AmqpClient.Connect channel.ExchangeDeclare: %v", err)
 	}
 
 	// Declare the private queue
 	a.queue, err = a.channel.QueueDeclare(
-		Config.Amqp.Exchange+".rtbh-queue", // Name
+		cfg.Amqp.Exchange+".rtbh-queue", // Name
 		true,  // Durable queue
 		false, // Dont delete when unused
 		true,  // Exclusive queue
@@ -52,24 +51,22 @@ func (a *AmqpClient) Connect() (err error) {
 		nil,   // No arguments
 	)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to declare queue: " + err.Error())
-		return
+		return fmt.Errorf("AmqpClient.Connect channel.QueueDeclare: %v", err)
 	}
 
 	// Bind to the queue
 	err = a.channel.QueueBind(
-		a.queue.Name,         // Name of queue
-		"#",                  // Routing key
-		Config.Amqp.Exchange, // Exchange
-		false,                // No-wait
-		nil,                  // Args
+		a.queue.Name,      // Name of queue
+		"#",               // Routing key
+		cfg.Amqp.Exchange, // Exchange
+		false,             // No-wait
+		nil,               // Args
 	)
 	if err != nil {
-		err = errors.New(MYNAME + ": Failed to bind to queue: " + err.Error())
-		return
+		return fmt.Errorf("AmqpClient.Connect channel.QueueBind: %v", err)
 	}
 
-	return
+	return nil
 }
 
 func (a *AmqpClient) Slurp(input chan []byte) (err error) {
@@ -86,7 +83,7 @@ func (a *AmqpClient) Slurp(input chan []byte) (err error) {
 		nil,          // No arguments
 	)
 
-	Log.Debug(MYNAME + ": Reading from event queue")
+	log.Debugf("AmqpClient.Slurp: Reading from event queue")
 
 	// Start amqp eventloop
 	stop_loop = false
@@ -107,14 +104,14 @@ func (a *AmqpClient) Slurp(input chan []byte) (err error) {
 				switch cmd {
 				case config.CTL_SHUTDOWN:
 					{
-						Log.Debug("[Amqp]: Cleaning up and exiting loop")
+						log.Debugf("AmqpClient: Cleaning up and exiting loop")
 						a.connection.Close()
 						stop_loop = true
 						continue
 					}
 				default:
 					{
-						Log.Warning("[Amqp]: Unknown control signal received")
+						log.Warningf("AmqpClient: Unknown control signal received")
 						continue
 					}
 				}

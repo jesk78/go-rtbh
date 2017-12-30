@@ -3,9 +3,9 @@ package orm
 import (
 	"fmt"
 	"time"
-)
 
-const HISTORY string = MYNAME + ".History"
+	"github.com/r3boot/go-rtbh/lib/memcache"
+)
 
 type History struct {
 	Id       int64
@@ -14,33 +14,45 @@ type History struct {
 	AddedAt  time.Time
 }
 
+var cacheHistory *memcache.StringCache
+
 func (obj *History) String() string {
 	return fmt.Sprintf("History<%d %s %s %s>", obj.Id, obj.AddrId, obj.ReasonId, obj.AddedAt)
 }
 
-func (obj *History) Save() bool {
-	var err error
-
-	if err = db.Create(obj); err != nil {
-		Log.Fatal(MYNAME + ": " + obj.String() + ".Save() failed: " + err.Error())
+func (obj *History) Save() error {
+	addr, err := GetAddressById(obj.AddrId)
+	if err != nil {
+		return fmt.Errorf("History.Save: %v", err)
+	}
+	if addr.Addr == "" {
+		return fmt.Errorf("History.Save: No address record found for %v", obj)
 	}
 
-	return true
+	err = db.Create(obj)
+	if err != nil {
+		return fmt.Errorf("History.Save db.Create: %v", err)
+	}
+
+	cacheHistory.Add(addr.Addr, obj)
+
+	return nil
 }
 
-func GetHistoryEntries(addr_s string) []*History {
-	var addr *Address
-	var entries []*History
-	var err error
-
-	if addr = GetAddress(addr_s); addr.Addr == "" {
-		Log.Fatal(MYNAME + ".GetHistoryEntries(" + addr_s + ") failed: GetAddress(): No such address")
+func GetHistoryEntries(addr_s string) ([]*History, error) {
+	addr, err := GetAddress(addr_s)
+	if err != nil {
+		return nil, fmt.Errorf("ORM.GetHistoryEntries: %v", err)
+	}
+	if addr.Addr == "" {
+		return nil, fmt.Errorf("ORM.GetHistoryEntries: No such address")
 	}
 
+	entries := []*History{}
 	err = db.Model(entries).Where("?.addr_id = ?", T_HISTORY, addr.Id).Select()
 	if err != nil {
-		Log.Fatal(MYNAME + ".GetHistoryEntries(" + addr_s + ") failed: " + err.Error())
+		return nil, fmt.Errorf("ORM.GetHistoryEntries db.Select: %v", err)
 	}
 
-	return entries
+	return entries, nil
 }

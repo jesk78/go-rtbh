@@ -2,9 +2,10 @@ package pipeline
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/r3boot/go-rtbh/lib/config"
 	"github.com/r3boot/go-rtbh/lib/events"
-	"regexp"
 )
 
 type Worker struct {
@@ -49,7 +50,7 @@ func (w *Worker) Start() {
 	var event *events.RTBHEvent
 	var err error
 
-	Log.Debug(MYNAME + "." + w.MyName + ": Starting up worker routine")
+	log.Debugf("Worker.Start: starting worker %s", w.MyName)
 	go func() {
 		for {
 			// Add this worker to the work queue
@@ -59,41 +60,41 @@ func (w *Worker) Start() {
 			select {
 			case data = <-w.Work:
 				{
-					Log.Debug(MYNAME + "." + w.MyName + ": Processing new event")
+					log.Debugf("Worker.%s: received new event", w.MyName)
 					if event, err = events.NewEvent(data); err != nil {
-						Log.Warning(MYNAME + "." + w.MyName + ": Failed to prepare event" + err.Error())
+						log.Warningf("Worker.%s: Failed to prepare event: %v", w.MyName, err)
 						continue
 					}
 
 					if event.Address == "" {
-						Log.Warning(MYNAME + "." + w.MyName + ": Failed to parse event: " + string(data))
+						log.Warningf("Worker.%s: Failed to parse event %s", w.MyName, string(data))
 						continue
 					}
 
 					if w.parent.whitelist.Listed(event.Address) {
-						Log.Warning(MYNAME + "." + w.MyName + ": Host " + event.Address + " is on whitelist")
+						log.Warningf("Worker.%s: %s is on whitelist", w.MyName, event.Address)
 						continue
 					}
 
 					if w.parent.blacklist.Listed(event.Address) {
-						Log.Warning(MYNAME + "." + w.MyName + ": Host " + event.Address + " is already listed")
+						log.Warningf("Worker.%s: %s is already listed", w.MyName, event.Address)
 						continue
 					}
 
 					if w.foundMatch(event.Reason) {
-						event.ExpireIn = "1m"
+						event.ExpireIn = "5m"
 
 						if err = w.parent.blacklist.Add(*event); err != nil {
-							Log.Warning(MYNAME + "." + w.MyName + ": Blacklist.Add failed: " + err.Error())
+							log.Warningf("Worker.%s: %v", w.MyName, err)
 							continue
 						}
 
 						if err = w.parent.history.Add(*event); err != nil {
-							Log.Warning(MYNAME + "." + w.MyName + ": History.Add failed: " + err.Error())
+							log.Warningf("Worker.%s: %v", w.MyName, err)
 							continue
 						}
 
-						Log.Debug(MYNAME + "." + w.MyName + ": Added " + event.Address + " to blacklist because of " + event.Reason)
+						log.Debugf("Worker.%s: Added %s to blacklist because of %s", w.MyName, event.Address, event.Reason)
 					}
 				}
 			case <-w.Done:
@@ -102,6 +103,6 @@ func (w *Worker) Start() {
 				}
 			}
 		}
-		Log.Debug(MYNAME + "." + w.MyName + ": Finished processing events")
+		log.Debugf("Worker.%s: Finished processing events", w.MyName)
 	}()
 }

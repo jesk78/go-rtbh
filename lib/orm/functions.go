@@ -1,32 +1,31 @@
 package orm
 
 import (
-	"errors"
+	"fmt"
+
 	"gopkg.in/pg.v4"
 )
 
-func (orm *ORM) Connect() (err error) {
-	var schema_query string
-
+func (orm *ORM) Connect() error {
 	db = pg.Connect(&pg.Options{
-		Addr:     Config.Database.Address,
-		User:     Config.Database.Username,
-		Password: Config.Database.Password,
-		Database: Config.Database.Name,
+		Addr:     cfg.Database.Address,
+		User:     cfg.Database.Username,
+		Password: cfg.Database.Password,
+		Database: cfg.Database.Name,
 	})
 
 	if db == nil {
-		err = errors.New(MYNAME + ": Failed to connect to database")
-		return
+		return fmt.Errorf("ORM.Connect: Failed to connect to database")
 	}
-	Log.Debug(MYNAME + ": Connected to pg://" + Config.Database.Username + ":***@" + Config.Database.Address + "/" + Config.Database.Name)
+	log.Debugf("ORM.Connect: Connected to pg://%s:***@%s/%s", cfg.Database.Username, cfg.Database.Address, cfg.Database.Name)
 
-	for _, schema_query = range database_schema {
-		if _, err = db.Exec(schema_query); err != nil {
-			Log.Debug(schema_query)
-			Log.Fatal(MYNAME + ": Failed to update DB schema: " + err.Error())
+	for _, schema_query := range databaseSchema {
+		_, err := db.Exec(schema_query)
+		if err != nil {
+			log.Debugf(schema_query)
+			return fmt.Errorf("ORM.Connect db.Exec: %v", err)
 		}
 	}
 
-	return
+	return nil
 }

@@ -1,38 +1,20 @@
 package resolver
 
 import (
-	"errors"
-	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/rlib/logger"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/r3boot/go-rtbh/lib/config"
+	"github.com/r3boot/go-rtbh/lib/logger"
 )
 
-const MYNAME string = "Resolver"
+func NewResolver(l *logger.Logger, c *config.Config) (resolver *Resolver, err error) {
+	log = l
+	cfg = c
 
-var Config *config.Config
-var Log logger.Log
-
-type Resolver struct {
-	Interval time.Duration
-	Control  chan int
-	Done     chan bool
-	cache    map[string]string
-	mutex    *sync.Mutex
-}
-
-func Setup(l logger.Log, c *config.Config) (err error) {
-	Log = l
-	Config = c
-
-	Log.Debug(MYNAME + ": Module initialized")
-	return
-}
-
-func New() (resolver *Resolver, err error) {
-	if !Config.General.Resolver.Enabled {
-		err = errors.New(MYNAME + ": dns resolving not enabled")
-		return
+	if !cfg.General.Resolver.Enabled {
+		return nil, fmt.Errorf("NewResolver: DNS resolver not enabled")
 	}
 
 	resolver = &Resolver{
@@ -42,12 +24,12 @@ func New() (resolver *Resolver, err error) {
 		Done:    make(chan bool, config.D_DONE_BUFSIZE),
 	}
 
-	resolver.Interval, err = time.ParseDuration(Config.General.Resolver.LookupMaxInterval)
+	resolver.Interval, err = time.ParseDuration(cfg.General.Resolver.LookupMaxInterval)
 	if err != nil {
-		resolver = nil
-		err = errors.New(MYNAME + ": Failed to parse duration: " + err.Error())
-		return
+		return nil, fmt.Errorf("NewResolver time.ParseDuration: %v", err)
 	}
+
+	log.Debugf("Resolver: Module initialized")
 
 	return
 }

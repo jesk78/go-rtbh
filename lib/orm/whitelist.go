@@ -14,40 +14,38 @@ func (obj *Whitelist) String() string {
 	return fmt.Sprintf("Whitelist<%d %s %s>", obj.Id, obj.AddrId, obj.Description)
 }
 
-func (obj *Whitelist) Save() bool {
-	var err error
-
-	if err = db.Create(obj); err != nil {
-		Log.Warning("[orm] " + obj.String() + ".Save() failed: " + err.Error())
-		return false
+func (obj *Whitelist) Save() error {
+	err := db.Create(obj)
+	if err != nil {
+		return fmt.Errorf("Whitelist.Save db.Create: %v", err)
 	}
 
-	return true
+	return nil
 }
 
-func (obj *Whitelist) Remove() bool {
-	var err error
-
-	if err = db.Delete(obj); err != nil {
-		Log.Warning("[orm] " + obj.String() + ".Remove() failed: " + err.Error())
-		return false
+func (obj *Whitelist) Remove() error {
+	err := db.Delete(obj)
+	if err != nil {
+		return fmt.Errorf("Whitelist.Remove db.Delete: %v", err)
 	}
-	return true
+
+	return nil
 }
 
-func GetWhitelistEntry(addr_s string) *Whitelist {
-	var addr *Address
-	var entry *Whitelist
-	var err error
-
-	if addr = GetAddress(addr_s); addr.Addr == "" {
-		return nil
+func GetWhitelistEntry(addr_s string) (*Whitelist, error) {
+	addr, err := GetAddress(addr_s)
+	if err != nil {
+		return nil, fmt.Errorf("ORM.GetWhitelistEntry: %v", err)
+	}
+	if addr.Addr == "" {
+		return nil, fmt.Errorf("ORM.GetWhitelistEntry: address is emtry")
 	}
 
+	entry := &Whitelist{}
 	err = db.Model(entry).Where(T_WHITELIST+".addr_id = ?", addr.Id).Select()
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("ORM.GetWhitelistEntry db.Select: %v", err)
 	}
 
-	return entry
+	return entry, nil
 }

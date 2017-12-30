@@ -1,42 +1,33 @@
 package amqp
 
 import (
+	"fmt"
+
 	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/rlib/logger"
-	"github.com/streadway/amqp"
+	"github.com/r3boot/go-rtbh/lib/logger"
 )
 
-const MYNAME string = "AMQP"
+var (
+	cfg *config.Config
+	log *logger.Logger
+)
 
-var Config *config.Config
-var Log logger.Log
+func NewAmqpClient(l *logger.Logger, c *config.Config) (*AmqpClient, error) {
+	log = l
+	cfg = c
 
-type AmqpClient struct {
-	connection *amqp.Connection
-	channel    *amqp.Channel
-	queue      amqp.Queue
-	Events     chan []byte
-	Control    chan int
-	Done       chan bool
-}
-
-func Setup(l logger.Log, c *config.Config) (err error) {
-	Log = l
-	Config = c
-
-	Log.Debug(MYNAME + ": Module initialized")
-	return
-}
-
-func New() *AmqpClient {
-	var amqp *AmqpClient
-
-	amqp = &AmqpClient{
+	amqp := &AmqpClient{
 		Events:  make(chan []byte, config.D_AMQP_BUFSIZE),
 		Control: make(chan int, config.D_CONTROL_BUFSIZE),
 		Done:    make(chan bool, config.D_DONE_BUFSIZE),
 	}
-	amqp.Connect()
 
-	return amqp
+	err := amqp.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("NewAmqpClient: %v", err)
+	}
+
+	log.Debugf("AmqpClient: Module initialized")
+
+	return amqp, nil
 }

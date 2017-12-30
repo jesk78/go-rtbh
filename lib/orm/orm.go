@@ -1,34 +1,50 @@
 package orm
 
 import (
+	"fmt"
+
 	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/rlib/logger"
+	"github.com/r3boot/go-rtbh/lib/logger"
+	"github.com/r3boot/go-rtbh/lib/memcache"
 	"gopkg.in/pg.v4"
 )
 
-const MYNAME string = "ORM"
-
-var Config *config.Config
-var Log logger.Log
-
 var db *pg.DB
 
-type ORM struct {
-}
+func NewORM(l *logger.Logger, c *config.Config) (*ORM, error) {
+	log = l
+	cfg = c
 
-func Setup(l logger.Log, c *config.Config) (err error) {
-	Log = l
-	Config = c
+	orm := &ORM{}
+	err := orm.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("NewORM: %v", err)
+	}
 
-	Log.Debug(MYNAME + ": Module initialized")
-	return
-}
+	// Initialize the various caches
+	cacheAddrOnAddress = memcache.NewStringIndexed()
+	cacheAddrOnId = memcache.NewIntIndexed()
+	err = WarmupAddressCaches()
+	if err != nil {
+		return nil, fmt.Errorf("NewORM: %v", err)
+	}
 
-func New() *ORM {
-	var orm *ORM
+	cacheReasonOnAddress = memcache.NewStringIndexed()
+	cacheReasonOnId = memcache.NewIntIndexed()
+	err = WarmupReasonCaches()
+	if err != nil {
+		return nil, fmt.Errorf("NewORM: %v", err)
+	}
 
-	orm = &ORM{}
-	orm.Connect()
+	cacheBlacklistOnAddress = memcache.NewStringIndexed()
+	cacheBlacklistOnId = memcache.NewIntIndexed()
+	err = WarmupBlacklistCaches()
+	if err != nil {
+		return nil, fmt.Errorf("NewORM: %v", err)
+	}
 
-	return orm
+	cacheHistory = memcache.NewStringIndexed()
+	// TODO: Finish history cache
+
+	return orm, nil
 }

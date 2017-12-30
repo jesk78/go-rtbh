@@ -1,67 +1,69 @@
 package whitelist
 
 import (
-	"errors"
+	"net"
+
+	"fmt"
+
 	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/orm"
-	"net"
 )
 
-func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) (err error) {
+func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) error {
 	var (
-		addr   *orm.Address
 		wentry orm.Whitelist
 		names  []string
-		fqdn   string
 	)
 
-	if names, err = net.LookupAddr(entry.Address); err != nil {
-		Log.Warning(MYNAME + ": Failed to lookup fqdn for " + entry.Address)
-		fqdn = "unknown"
+	fqdn := "UNRESOLVED"
+	names, err := net.LookupAddr(entry.Address)
+	if err != nil {
+		log.Warningf("Whitelist.Add: Failed to lookup fqdn for " + entry.Address)
 	} else {
 		fqdn = names[0]
 	}
 
 	if len(names) > 1 {
-		Log.Warning(MYNAME + ": Multiple hosts found for " + entry.Address + " using " + fqdn)
+		log.Warningf("Whitelist.Add: Multiple hosts found for " + entry.Address + " using " + fqdn)
 	}
 
-	if addr = orm.UpdateAddress(entry.Address, fqdn); addr.Addr == "" {
-		return
+	addr, err := orm.UpdateAddress(entry.Address, fqdn)
+	if err != nil {
+		return fmt.Errorf("Whitelist.Add: %v", err)
+	}
+	if addr.Addr == "" {
+		return fmt.Errorf("Whitelist.Add: Address is empty")
 	}
 
 	wentry = orm.Whitelist{
 		AddrId:      addr.Id,
 		Description: entry.Description,
 	}
-	if ok := wentry.Save(); !ok {
-		return
+	err = wentry.Save()
+	if err != nil {
+		return fmt.Errorf("Whitelist.Add: %v", err)
 	}
 
 	wl.bgp.RemoveRoute(entry.Address)
 
-	wl.cache.Add(entry.Address, entry)
-
-	return
+	return nil
 }
 
-func (wl *Whitelist) Remove(addr string) (err error) {
-	var entry *orm.Whitelist
-
-	if entry = orm.GetWhitelistEntry(addr); entry == nil {
-		err = errors.New(MYNAME + ": Failed to retrieve address")
-		return
+func (wl *Whitelist) Remove(addr string) error {
+	entry, err := orm.GetWhitelistEntry(addr)
+	if err != nil {
+		return fmt.Errorf("Whitelist.Remove: %v", err)
 	}
 
-	wl.cache.Remove(addr)
-
-	if ok := entry.Remove(); !ok {
-		err = errors.New(MYNAME + ": Failed to remove entry")
+	err = entry.Remove()
+	if err != nil {
+		return fmt.Errorf("Whitelist.Remove: %v", err)
 	}
 
-	return
+	return nil
 }
 
 func (wl *Whitelist) Listed(addr string) bool {
-	return wl.cache.Has(addr)
+	entry, err := orm.GetWhitelistEntry(addr)
+	return entry.AddrId != 0 && err != nil
 }

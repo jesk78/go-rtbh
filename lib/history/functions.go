@@ -1,37 +1,38 @@
 package history
 
 import (
-	"errors"
+	"fmt"
+
 	"github.com/r3boot/go-rtbh/lib/events"
 	"github.com/r3boot/go-rtbh/lib/orm"
 )
 
-func (history *History) Add(event events.RTBHEvent) (err error) {
-	var (
-		addr   *orm.Address
-		entry  *orm.History
-		reason *orm.Reason
-	)
-
-	if addr = orm.GetAddress(event.Address); addr == nil {
-		err = errors.New(MYNAME + ": GetAddress() failed: No such address")
-		return
+func (history *History) Add(event events.RTBHEvent) error {
+	addr, err := orm.GetAddress(event.Address)
+	if err != nil {
+		return fmt.Errorf("History.Add: %v", err)
+	}
+	if addr.Addr == "" {
+		return fmt.Errorf("History.Add: Address is empty")
 	}
 
-	if reason = orm.GetReason(event.Reason); reason.Reason == "" {
-		err = errors.New(MYNAME + ": GetReason() failed: No such reason")
-		return
+	reason, err := orm.GetReason(event.Reason)
+	if err != nil {
+		return fmt.Errorf("History.Add: %v", err)
+	}
+	if reason.Reason == "" {
+		return fmt.Errorf("History.Add: Reason is empty")
 	}
 
-	Log.Debug("Working on " + event.Address)
-	entry = &orm.History{
-		AddrId: addr.Id,
-		ReasonId:    reason.Id,
-		AddedAt:     event.AddedAt,
+	entry := &orm.History{
+		AddrId:   addr.Id,
+		ReasonId: reason.Id,
+		AddedAt:  event.AddedAt,
 	}
-	if ok := entry.Save(); !ok {
-		err = errors.New(MYNAME + ": " + entry.String() + ".Save() failed")
+	err = entry.Save()
+	if err != nil {
+		return fmt.Errorf("History.Add: %v", err)
 	}
 
-	return
+	return nil
 }

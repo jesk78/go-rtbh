@@ -8,13 +8,10 @@ import (
 // Utility function used to convert a community string to uint32
 func community_aton(community string) uint32 {
 	var sum uint32
-	var words []string
-	var w0 int
-	var w1 int
 
-	words = strings.Split(community, ":")
-	w0, _ = strconv.Atoi(words[0])
-	w1, _ = strconv.Atoi(words[1])
+	words := strings.Split(community, ":")
+	w0, _ := strconv.Atoi(words[0])
+	w1, _ := strconv.Atoi(words[1])
 
 	sum += uint32(w0) << 16
 	sum += uint32(w1)

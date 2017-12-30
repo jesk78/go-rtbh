@@ -1,20 +1,17 @@
 package reaper
 
 import (
-	"github.com/r3boot/go-rtbh/lib/config"
 	"time"
+
+	"github.com/r3boot/go-rtbh/lib/config"
 )
 
 func (r *Reaper) CleanupExpiredRoutine() (err error) {
-	var stop_loop bool
-	var t_tick time.Time
-	var t_now time.Time
+	t_now := time.Now()
+	t_tick := t_now.Add(r.Interval)
 
-	t_now = time.Now()
-	t_tick = t_now.Add(r.Interval)
-
-	Log.Debug(MYNAME + ": Running CleanupExpiredRoutine every " + Config.General.ReaperInterval)
-	stop_loop = false
+	log.Debugf("Reaper: Running CleanupExpiredRoutine every %s", cfg.General.ReaperInterval)
+	stop_loop := false
 	for {
 		if stop_loop {
 			break
@@ -26,7 +23,7 @@ func (r *Reaper) CleanupExpiredRoutine() (err error) {
 				switch cmd {
 				case config.CTL_SHUTDOWN:
 					{
-						Log.Debug(MYNAME + ": Shutting down")
+						log.Debugf("Reaper: Shutting down")
 						stop_loop = true
 						continue
 					}
