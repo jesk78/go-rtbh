@@ -7,19 +7,19 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/r3boot/go-rtbh/lib/amqp"
-	"github.com/r3boot/go-rtbh/lib/bgp"
-	"github.com/r3boot/go-rtbh/lib/blacklist"
-	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/go-rtbh/lib/events"
-	"github.com/r3boot/go-rtbh/lib/history"
-	"github.com/r3boot/go-rtbh/lib/logger"
-	"github.com/r3boot/go-rtbh/lib/orm"
-	"github.com/r3boot/go-rtbh/lib/pipeline"
-	"github.com/r3boot/go-rtbh/lib/reaper"
-	"github.com/r3boot/go-rtbh/lib/redis"
-	"github.com/r3boot/go-rtbh/lib/resolver"
-	"github.com/r3boot/go-rtbh/lib/whitelist"
+	"github.com/r3boot/go-rtbh/pkg/amqp"
+	"github.com/r3boot/go-rtbh/pkg/bgp"
+	"github.com/r3boot/go-rtbh/pkg/blacklist"
+	"github.com/r3boot/go-rtbh/pkg/config"
+	"github.com/r3boot/go-rtbh/pkg/events"
+	"github.com/r3boot/go-rtbh/pkg/history"
+	"github.com/r3boot/go-rtbh/pkg/logger"
+	"github.com/r3boot/go-rtbh/pkg/orm"
+	"github.com/r3boot/go-rtbh/pkg/pipeline"
+	"github.com/r3boot/go-rtbh/pkg/reaper"
+	"github.com/r3boot/go-rtbh/pkg/redis"
+	"github.com/r3boot/go-rtbh/pkg/resolver"
+	"github.com/r3boot/go-rtbh/pkg/whitelist"
 )
 
 var (
@@ -135,9 +135,7 @@ func init() {
 }
 
 func main() {
-	var input_data chan []byte
-
-	input_data = make(chan []byte, config.D_INPUT_BUFSIZE)
+	inputData := make(chan []byte, config.D_INPUT_BUFSIZE)
 
 	// Start signal handles
 	signals = make(chan os.Signal, config.D_SIGNAL_BUFSIZE)
@@ -150,7 +148,7 @@ func main() {
 	go BGP.ServerRoutine()
 
 	// Start pipeline
-	go Pipeline.WorkManagerRoutine(input_data)
+	go Pipeline.WorkManagerRoutine(inputData)
 
 	// Start reaper
 	go Reaper.CleanupExpiredRoutine()
@@ -159,7 +157,7 @@ func main() {
 	go Resolver.UnknownLookupRoutine()
 
 	// Start AMQP event slurper
-	go AmqpClient.Slurp(input_data)
+	go AmqpClient.Slurp(inputData)
 
 	// Wait for program completion
 	<-allDone

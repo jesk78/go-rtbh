@@ -2,14 +2,14 @@ package go_rtbhapp
 
 import (
 	"flag"
-	"github.com/r3boot/go-rtbh/lib/api"
-	"github.com/r3boot/go-rtbh/lib/blacklist"
-	"github.com/r3boot/go-rtbh/lib/config"
-	"github.com/r3boot/go-rtbh/lib/events"
-	"github.com/r3boot/go-rtbh/lib/history"
-	"github.com/r3boot/go-rtbh/lib/memcache"
-	"github.com/r3boot/go-rtbh/lib/orm"
-	"github.com/r3boot/go-rtbh/lib/whitelist"
+	"github.com/r3boot/go-rtbh/pkg/api"
+	"github.com/r3boot/go-rtbh/pkg/blacklist"
+	"github.com/r3boot/go-rtbh/pkg/config"
+	"github.com/r3boot/go-rtbh/pkg/events"
+	"github.com/r3boot/go-rtbh/pkg/history"
+	"github.com/r3boot/go-rtbh/pkg/memcache"
+	"github.com/r3boot/go-rtbh/pkg/orm"
+	"github.com/r3boot/go-rtbh/pkg/whitelist"
 	"github.com/r3boot/rlib/logger"
 )
 
