@@ -9,7 +9,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
 
-func NewResolver(l *logger.Logger, c *config.Config) (resolver *Resolver, err error) {
+func New(l *logger.Logger, c *config.Config) (resolver *Resolver, err error) {
 	log = l
 	cfg = c
 

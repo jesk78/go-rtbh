@@ -9,7 +9,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
 
-func NewReaper(l *logger.Logger, c *config.Config, bl *blacklist.Blacklist) (*Reaper, error) {
+func New(l *logger.Logger, c *config.Config, bl *blacklist.Blacklist) (*Reaper, error) {
 	var err error
 
 	log = l

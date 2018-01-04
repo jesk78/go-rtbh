@@ -79,11 +79,11 @@ func init() {
 
 	flag.Parse()
 
-	Logger = logger.NewLogger(*timestamps, *debug)
+	Logger = logger.New(*timestamps, *debug)
 	Logger.Debugf("init: Debug logging enabled")
 
 	// First, configure all dependencies
-	Config, err := config.NewConfig(Logger, *cfgfile)
+	Config, err := config.New(Logger, *cfgfile)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}
@@ -95,38 +95,38 @@ func init() {
 	}
 
 	if Config.Amqp.Address != "" {
-		AmqpClient, err = amqp.NewAmqpClient(Logger, Config)
+		AmqpClient, err = amqp.New(Logger, Config)
 		if err != nil {
 			Logger.Fatalf("init: %v", err)
 		}
 	}
 
 	if Config.Redis.Address != "" {
-		RedisClient = redis.NewRedisClient(Logger, Config)
+		RedisClient = redis.New(Logger, Config)
 	}
 
-	ORM, err = orm.NewORM(Logger, Config)
+	ORM, err = orm.New(Logger, Config)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}
 
-	BGP, err = bgp.NewBGP(Logger, Config)
+	BGP, err = bgp.New(Logger, Config)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}
 
 	// Then, setup all blacklist related libs
-	Blacklist = blacklist.NewBlacklist(Logger, Config, BGP)
-	Whitelist = whitelist.NewWhitelist(Logger, Config, BGP)
-	History = history.NewHistory(Logger, Config)
-	Pipeline = pipeline.NewPipeline(Logger, Config, Blacklist, Whitelist, History)
+	Blacklist = blacklist.New(Logger, Config, BGP)
+	Whitelist = whitelist.New(Logger, Config, BGP)
+	History = history.New(Logger, Config)
+	Pipeline = pipeline.New(Logger, Config, Blacklist, Whitelist, History)
 
-	Resolver, err = resolver.NewResolver(Logger, Config)
+	Resolver, err = resolver.New(Logger, Config)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}
 
-	Reaper, err = reaper.NewReaper(Logger, Config, Blacklist)
+	Reaper, err = reaper.New(Logger, Config, Blacklist)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}

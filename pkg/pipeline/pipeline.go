@@ -8,7 +8,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/whitelist"
 )
 
-func NewPipeline(l *logger.Logger, c *config.Config, bl *blacklist.Blacklist, wl *whitelist.Whitelist, h *history.History) *Pipeline {
+func New(l *logger.Logger, c *config.Config, bl *blacklist.Blacklist, wl *whitelist.Whitelist, h *history.History) *Pipeline {
 	log = l
 	cfg = c
 

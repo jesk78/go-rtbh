@@ -5,7 +5,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
 
-func NewRedisClient(l *logger.Logger, c *config.Config) *RedisClient {
+func New(l *logger.Logger, c *config.Config) *RedisClient {
 	log = l
 	cfg = c
 

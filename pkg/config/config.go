@@ -10,19 +10,19 @@ const MYNAME string = "Config"
 
 var log *logger.Logger
 
-func NewConfig(l *logger.Logger, cfgfile string) (*Config, error) {
+func New(l *logger.Logger, cfgfile string) (*Config, error) {
 	log = l
 
 	cfg := &Config{}
 
 	if err := cfg.LoadFrom(cfgfile); err != nil {
-		return nil, fmt.Errorf("NewConfig: %v", err)
+		return nil, fmt.Errorf("config.New: %v", err)
 	}
 
 	cfg.CheckAndSetDefaults()
 
 	if err := cfg.CompileRuleset(); err != nil {
-		return nil, fmt.Errorf("NewConfig: %v", err)
+		return nil, fmt.Errorf("config.New: %v", err)
 	}
 
 	return cfg, nil

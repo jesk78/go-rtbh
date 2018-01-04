@@ -8,7 +8,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
 
-func NewBlacklist(l *logger.Logger, c *config.Config, b *bgp.BGP) *Blacklist {
+func New(l *logger.Logger, c *config.Config, b *bgp.BGP) *Blacklist {
 	log = l
 	cfg = c
 

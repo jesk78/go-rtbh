@@ -61,7 +61,7 @@ func (w *Worker) Start() {
 			case data = <-w.Work:
 				{
 					log.Debugf("Worker.%s: received new event", w.MyName)
-					if event, err = events.NewEvent(data); err != nil {
+					if event, err = events.New(data); err != nil {
 						log.Warningf("Worker.%s: Failed to prepare event: %v", w.MyName, err)
 						continue
 					}

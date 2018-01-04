@@ -12,7 +12,7 @@ var (
 	log *logger.Logger
 )
 
-func NewAmqpClient(l *logger.Logger, c *config.Config) (*AmqpClient, error) {
+func New(l *logger.Logger, c *config.Config) (*AmqpClient, error) {
 	log = l
 	cfg = c
 
@@ -24,7 +24,7 @@ func NewAmqpClient(l *logger.Logger, c *config.Config) (*AmqpClient, error) {
 
 	err := amqp.Connect()
 	if err != nil {
-		return nil, fmt.Errorf("NewAmqpClient: %v", err)
+		return nil, fmt.Errorf("amqp.New: %v", err)
 	}
 
 	log.Debugf("AmqpClient: Module initialized")

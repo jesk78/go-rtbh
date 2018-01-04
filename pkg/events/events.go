@@ -22,7 +22,7 @@ func Setup(l *logger.Logger, c *config.Config) {
 	return
 }
 
-func NewEvent(data []byte) (event *RTBHEvent, err error) {
+func New(data []byte) (event *RTBHEvent, err error) {
 	event = &RTBHEvent{
 		AddedAt: time.Now(),
 	}

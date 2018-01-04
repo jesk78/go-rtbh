@@ -3,12 +3,13 @@ package bgp
 import (
 	"fmt"
 
-	"github.com/r3boot/go-rtbh/pkg/bgp/bgp2go"
+	"bgp2go"
+
 	"github.com/r3boot/go-rtbh/pkg/config"
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
 
-func NewBGP(l *logger.Logger, c *config.Config) (*BGP, error) {
+func New(l *logger.Logger, c *config.Config) (*BGP, error) {
 	log = l
 	cfg = c
 

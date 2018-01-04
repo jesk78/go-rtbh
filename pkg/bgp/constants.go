@@ -1,7 +1,8 @@
 package bgp
 
 import (
-	"github.com/r3boot/go-rtbh/pkg/bgp/bgp2go"
+	"bgp2go"
+
 	"github.com/r3boot/go-rtbh/pkg/config"
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )

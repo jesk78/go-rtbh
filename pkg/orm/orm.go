@@ -11,7 +11,7 @@ import (
 
 var db *pg.DB
 
-func NewORM(l *logger.Logger, c *config.Config) (*ORM, error) {
+func New(l *logger.Logger, c *config.Config) (*ORM, error) {
 	log = l
 	cfg = c
 

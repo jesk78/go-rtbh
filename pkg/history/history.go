@@ -5,7 +5,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
 
-func NewHistory(l *logger.Logger, c *config.Config) *History {
+func New(l *logger.Logger, c *config.Config) *History {
 	log = l
 	cfg = c
 
