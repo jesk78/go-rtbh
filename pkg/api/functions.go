@@ -1,8 +1,8 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +13,15 @@ type logWriter struct {
 	http.ResponseWriter
 	status int
 	length int
+}
+
+func (r WebResponse) ToJSON() []byte {
+	data, err := json.Marshal(r)
+	if err != nil {
+		return []byte("{\"status\":false,\"message\":\"json encoding failed\"}")
+	}
+
+	return data
 }
 
 func (w *logWriter) Write(b []byte) (int, error) {
@@ -31,35 +40,25 @@ func (w *logWriter) WriteHeader(status int) {
 	w.status = status
 }
 
-func (api *RtbhApi) SetupRouting() {
-	var rtr *mux.Router
+func (a *RtbhApi) SetupRouting() {
+	// API
+	http.HandleFunc("/api/v1/blacklist", a.BlacklistHandler)
+	http.HandleFunc("/api/v1/whitelist", a.WhitelistHandler)
 
-	rtr = mux.NewRouter()
-
-	// API functions
-	rtr.HandleFunc(PATH_API_BLACKLIST, api.handleBlacklist)
-
-	// Static assets
-	rtr.PathPrefix(PATH_APP).Handler(http.FileServer(http.Dir(Config.Api.Resources)))
-	rtr.PathPrefix(PATH_LIBS).Handler(http.FileServer(http.Dir(Config.Api.Resources)))
-
-	rtr.HandleFunc(PATH_CSS, api.handleFileRequest)
-	rtr.HandleFunc(PATH_SYSTEMJS_CFG, api.handleFileRequest)
-
-	// Application views
-	rtr.HandleFunc(PATH_VIEW_BLACKLIST, api.redirectToHomepage)
-	rtr.HandleFunc(PATH_VIEW_DASHBOARD, api.redirectToHomepage)
-	rtr.PathPrefix(PATH_ROOT).Handler(http.FileServer(http.Dir(Config.Api.Resources)))
-
-	http.Handle("/", rtr)
+	// Website
+	http.Handle("/css/", logHandler(http.FileServer(http.Dir("./ui"))))
+	http.Handle("/js/", logHandler(http.FileServer(http.Dir("./ui"))))
+	http.Handle("/img/", logHandler(http.FileServer(http.Dir("./ui"))))
+	http.Handle("/fonts/", logHandler(http.FileServer(http.Dir("./ui"))))
+	http.HandleFunc("/", a.HomeHandler)
 }
 
-func (api *RtbhApi) RunServiceRoutine() {
+func (api *RtbhApi) Run() {
 	var url string
 
-	url = Config.Api.BindIp + ":" + Config.Api.BindPort
-	Log.Verbose(MYNAME, ": Listening on http://"+url)
-	http.ListenAndServe(url, api.HttpLog(http.DefaultServeMux))
+	url = cfg.Api.BindIp + ":" + cfg.Api.BindPort
+	log.Debugf("RtbhApi.Run: Listening on http://" + url)
+	http.ListenAndServe(url, nil)
 
 	return
 }

@@ -8,11 +8,10 @@ import (
 	"fmt"
 
 	"github.com/r3boot/go-rtbh/pkg/config"
-	"github.com/r3boot/go-rtbh/pkg/orm"
 )
 
 func (r *Resolver) RandomSelectSamples(num int) ([]string, error) {
-	entries, err := orm.GetAddressesNoFqdn()
+	entries, err := r.orm.GetAddressesNoFqdn()
 	if err != nil {
 		return nil, fmt.Errorf("Resolver.RandomSelectSamples: %v", err)
 	}
@@ -84,7 +83,7 @@ func (r *Resolver) UnknownLookupRoutine() error {
 	t_now := time.Now()
 	t_tick := t_now.Add(time.Duration(rand.Int63n(MAX_SLEEP_INTERVAL)))
 
-	log.Debugf("Resolver: Starting UnknownLookupRoutine")
+	r.log.Debugf("Resolver: Starting UnknownLookupRoutine")
 	stop_loop := false
 	for {
 		if stop_loop {
@@ -97,7 +96,7 @@ func (r *Resolver) UnknownLookupRoutine() error {
 				switch cmd {
 				case config.CTL_SHUTDOWN:
 					{
-						log.Debugf("Resolver: Shutting down UnknownLookupRoutine")
+						r.log.Debugf("Resolver: Shutting down UnknownLookupRoutine")
 						stop_loop = true
 						continue
 					}
@@ -108,7 +107,7 @@ func (r *Resolver) UnknownLookupRoutine() error {
 				if t_now = time.Now(); t_now.After(t_tick) {
 					sampling, err := r.RandomSelectSamples(1)
 					if err != nil {
-						log.Warningf("Resolver.UnknownLookupRoutine: %v", err)
+						r.log.Warningf("Resolver.UnknownLookupRoutine: %v", err)
 						continue
 					}
 
@@ -116,11 +115,11 @@ func (r *Resolver) UnknownLookupRoutine() error {
 						addr := sampling[0]
 						fqdn, err := r.Lookup(addr)
 						if err != nil {
-							log.Warningf("Resolver.UnknownLookupRoutine: %v", err)
+							r.log.Warningf("Resolver.UnknownLookupRoutine: %v", err)
 							continue
 						}
 						if fqdn != "" {
-							orm.UpdateAddress(addr, fqdn)
+							r.orm.UpdateAddress(addr, fqdn)
 						}
 					}
 					t_tick = t_now.Add(time.Duration(rand.Int63n(MAX_SLEEP_INTERVAL)))

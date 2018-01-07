@@ -3,8 +3,6 @@ package orm
 import (
 	"fmt"
 	"time"
-
-	"github.com/r3boot/go-rtbh/pkg/memcache"
 )
 
 type History struct {
@@ -14,14 +12,12 @@ type History struct {
 	AddedAt  time.Time
 }
 
-var cacheHistory *memcache.StringCache
-
 func (obj *History) String() string {
 	return fmt.Sprintf("History<%d %s %s %s>", obj.Id, obj.AddrId, obj.ReasonId, obj.AddedAt)
 }
 
 func (obj *History) Save() error {
-	addr, err := GetAddressById(obj.AddrId)
+	addr, err := localORM.GetAddressById(obj.AddrId)
 	if err != nil {
 		return fmt.Errorf("History.Save: %v", err)
 	}
@@ -29,18 +25,16 @@ func (obj *History) Save() error {
 		return fmt.Errorf("History.Save: No address record found for %v", obj)
 	}
 
-	err = db.Create(obj)
+	err = localORM.db.Insert(obj)
 	if err != nil {
 		return fmt.Errorf("History.Save db.Create: %v", err)
 	}
 
-	cacheHistory.Add(addr.Addr, obj)
-
 	return nil
 }
 
-func GetHistoryEntries(addr_s string) ([]*History, error) {
-	addr, err := GetAddress(addr_s)
+func (o *ORM) GetHistoryEntries(addr_s string) ([]*History, error) {
+	addr, err := o.GetAddress(addr_s)
 	if err != nil {
 		return nil, fmt.Errorf("ORM.GetHistoryEntries: %v", err)
 	}
@@ -49,7 +43,7 @@ func GetHistoryEntries(addr_s string) ([]*History, error) {
 	}
 
 	entries := []*History{}
-	err = db.Model(entries).Where("?.addr_id = ?", T_HISTORY, addr.Id).Select()
+	err = o.db.Model(entries).Where("?.addr_id = ?", T_HISTORY, addr.Id).Select()
 	if err != nil {
 		return nil, fmt.Errorf("ORM.GetHistoryEntries db.Select: %v", err)
 	}

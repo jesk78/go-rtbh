@@ -67,7 +67,7 @@ func (w *Worker) Start() {
 					}
 
 					if event.Address == "" {
-						log.Warningf("Worker.%s: Failed to parse event %s", w.MyName, string(data))
+						// log.Warningf("Worker.%s: Failed to parse event %s", w.MyName, string(data))
 						continue
 					}
 

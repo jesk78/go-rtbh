@@ -3,28 +3,31 @@ package orm
 import (
 	"fmt"
 
-	"gopkg.in/pg.v4"
+	"pg"
+	"pg/orm"
 )
 
-func (orm *ORM) Connect() error {
-	db = pg.Connect(&pg.Options{
-		Addr:     cfg.Database.Address,
-		User:     cfg.Database.Username,
-		Password: cfg.Database.Password,
-		Database: cfg.Database.Name,
+func (o *ORM) Connect() error {
+	localORM.db = pg.Connect(&pg.Options{
+		Addr:     o.cfg.Database.Address,
+		User:     o.cfg.Database.Username,
+		Password: o.cfg.Database.Password,
+		Database: o.cfg.Database.Name,
 	})
 
-	if db == nil {
+	if o.db == nil {
 		return fmt.Errorf("ORM.Connect: Failed to connect to database")
 	}
-	log.Debugf("ORM.Connect: Connected to pg://%s:***@%s/%s", cfg.Database.Username, cfg.Database.Address, cfg.Database.Name)
+	o.log.Debugf("ORM.Connect: Connected to pg://%s:***@%s/%s", o.cfg.Database.Username, o.cfg.Database.Address, o.cfg.Database.Name)
 
-	for _, schema_query := range databaseSchema {
-		_, err := db.Exec(schema_query)
+	for _, model := range []interface{}{&Address{}, &Reason{}, &Blacklist{}, &Whitelist{}, &History{}} {
+		err := o.db.CreateTable(model, &orm.CreateTableOptions{
+			IfNotExists: true,
+		})
 		if err != nil {
-			log.Debugf(schema_query)
-			return fmt.Errorf("ORM.Connect db.Exec: %v", err)
+			return fmt.Errorf("ORM.Connect db.CreateTable: %v", err)
 		}
+
 	}
 
 	return nil

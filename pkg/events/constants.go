@@ -37,6 +37,7 @@ type APIEvent struct {
 
 // Struct containing a whitelist entry
 type RTBHWhiteEntry struct {
+	Id int64
 	Address     string
 	Description string
 }

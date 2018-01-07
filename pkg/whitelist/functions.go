@@ -18,16 +18,16 @@ func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) error {
 	fqdn := "UNRESOLVED"
 	names, err := net.LookupAddr(entry.Address)
 	if err != nil {
-		log.Warningf("Whitelist.Add: Failed to lookup fqdn for " + entry.Address)
+		wl.log.Warningf("Whitelist.Add: Failed to lookup fqdn for " + entry.Address)
 	} else {
 		fqdn = names[0]
 	}
 
 	if len(names) > 1 {
-		log.Warningf("Whitelist.Add: Multiple hosts found for " + entry.Address + " using " + fqdn)
+		wl.log.Warningf("Whitelist.Add: Multiple hosts found for " + entry.Address + " using " + fqdn)
 	}
 
-	addr, err := orm.UpdateAddress(entry.Address, fqdn)
+	addr, err := wl.orm.UpdateAddress(entry.Address, fqdn)
 	if err != nil {
 		return fmt.Errorf("Whitelist.Add: %v", err)
 	}
@@ -50,7 +50,7 @@ func (wl *Whitelist) Add(entry events.RTBHWhiteEntry) error {
 }
 
 func (wl *Whitelist) Remove(addr string) error {
-	entry, err := orm.GetWhitelistEntry(addr)
+	entry, err := wl.orm.GetWhitelistEntry(addr)
 	if err != nil {
 		return fmt.Errorf("Whitelist.Remove: %v", err)
 	}
@@ -63,7 +63,52 @@ func (wl *Whitelist) Remove(addr string) error {
 	return nil
 }
 
+func (wl *Whitelist) Update(data events.RTBHWhiteEntry) error {
+	entry, err := wl.orm.GetWhitelistEntry(data.Address)
+	if err != nil {
+		return fmt.Errorf("Whitelist.Update: %v", err)
+	}
+
+	entry.Description = data.Description
+
+	err = entry.Update()
+	if err != nil {
+		return fmt.Errorf("Whitelist.Update entry.Update: %v", err)
+	}
+
+	return nil
+}
+
 func (wl *Whitelist) Listed(addr string) bool {
-	entry, err := orm.GetWhitelistEntry(addr)
-	return entry.AddrId != 0 && err != nil
+	entry, err := wl.orm.GetWhitelistEntry(addr)
+	return err == nil && entry.AddrId != 0
+}
+
+func (wl *Whitelist) GetAll() ([]*events.RTBHWhiteEntry, error) {
+	entries := []*events.RTBHWhiteEntry{}
+
+	wlEntries, err := wl.orm.GetWhitelistEntries()
+	if err != nil {
+		return nil, fmt.Errorf("Blacklist.GetAll: %v", err)
+	}
+
+	for _, entry := range wlEntries {
+		addr, err := wl.orm.GetAddressById(entry.AddrId)
+		if err != nil {
+			return nil, fmt.Errorf("Blacklist.GetAll: %v", err)
+		}
+		if addr.Addr == "" {
+			return nil, fmt.Errorf("Blacklist.GetAll: Did not find ip address for blacklist entry for object id %d", entry.Id)
+		}
+
+		event := &events.RTBHWhiteEntry{
+			Id:          entry.Id,
+			Address:     addr.Addr,
+			Description: entry.Description,
+		}
+
+		entries = append(entries, event)
+	}
+
+	return entries, nil
 }

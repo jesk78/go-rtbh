@@ -15,7 +15,7 @@ func (obj *Whitelist) String() string {
 }
 
 func (obj *Whitelist) Save() error {
-	err := db.Create(obj)
+	err := localORM.db.Insert(obj)
 	if err != nil {
 		return fmt.Errorf("Whitelist.Save db.Create: %v", err)
 	}
@@ -23,8 +23,17 @@ func (obj *Whitelist) Save() error {
 	return nil
 }
 
+func (obj *Whitelist) Update() error {
+	err := localORM.db.Update(obj)
+	if err != nil {
+		return fmt.Errorf("Whitelist.Update db.Create: %v", err)
+	}
+
+	return nil
+}
+
 func (obj *Whitelist) Remove() error {
-	err := db.Delete(obj)
+	err := localORM.db.Delete(obj)
 	if err != nil {
 		return fmt.Errorf("Whitelist.Remove db.Delete: %v", err)
 	}
@@ -32,20 +41,32 @@ func (obj *Whitelist) Remove() error {
 	return nil
 }
 
-func GetWhitelistEntry(addr_s string) (*Whitelist, error) {
-	addr, err := GetAddress(addr_s)
+func (o *ORM) GetWhitelistEntry(addr_s string) (*Whitelist, error) {
+	addr, err := o.GetAddress(addr_s)
 	if err != nil {
 		return nil, fmt.Errorf("ORM.GetWhitelistEntry: %v", err)
 	}
-	if addr.Addr == "" {
+
+	if (addr == nil) || (addr != nil && addr.Addr == "") {
 		return nil, fmt.Errorf("ORM.GetWhitelistEntry: address is emtry")
 	}
 
 	entry := &Whitelist{}
-	err = db.Model(entry).Where(T_WHITELIST+".addr_id = ?", addr.Id).Select()
+	err = o.db.Model(entry).Where(T_WHITELIST+".addr_id = ?", addr.Id).Select()
 	if err != nil {
 		return nil, fmt.Errorf("ORM.GetWhitelistEntry db.Select: %v", err)
 	}
 
 	return entry, nil
+}
+
+func (o *ORM) GetWhitelistEntries() ([]*Whitelist, error) {
+	entries := []*Whitelist{}
+
+	_, err := o.db.Query(&entries, "SELECT * FROM whitelists")
+	if err != nil {
+		return nil, fmt.Errorf("ORM.GetWhitelistEntries db.Query: %v", err)
+	}
+
+	return entries, nil
 }

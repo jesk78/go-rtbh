@@ -6,6 +6,7 @@ import (
 
 	"github.com/r3boot/go-rtbh/pkg/config"
 	"github.com/r3boot/go-rtbh/pkg/logger"
+	"github.com/r3boot/go-rtbh/pkg/orm"
 )
 
 const (
@@ -17,14 +18,12 @@ const (
 )
 
 type Resolver struct {
+	cfg      *config.Config
+	log      *logger.Logger
+	orm      *orm.ORM
 	Interval time.Duration
 	Control  chan int
 	Done     chan bool
 	cache    map[string]string
 	mutex    *sync.Mutex
 }
-
-var (
-	cfg *config.Config
-	log *logger.Logger
-)

@@ -7,6 +7,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/config"
 	"github.com/r3boot/go-rtbh/pkg/events"
 	"github.com/r3boot/go-rtbh/pkg/logger"
+	"github.com/r3boot/go-rtbh/pkg/orm"
 )
 
 type ApiBlacklistGetAllResponse struct {
@@ -14,11 +15,9 @@ type ApiBlacklistGetAllResponse struct {
 }
 
 type Blacklist struct {
+	cfg   *config.Config
+	log   *logger.Logger
+	orm   *orm.ORM
 	bgp   *bgp.BGP
 	mutex *sync.Mutex
 }
-
-var (
-	cfg *config.Config
-	log *logger.Logger
-)

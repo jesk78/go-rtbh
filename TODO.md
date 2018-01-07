@@ -1,5 +1,4 @@
 # TODO in no particular order
-- Move BGP into go-rtbh
 - Add web ui
 
 

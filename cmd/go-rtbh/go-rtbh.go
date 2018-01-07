@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/r3boot/go-rtbh/pkg/amqp"
+	"github.com/r3boot/go-rtbh/pkg/api"
 	"github.com/r3boot/go-rtbh/pkg/bgp"
 	"github.com/r3boot/go-rtbh/pkg/blacklist"
 	"github.com/r3boot/go-rtbh/pkg/config"
@@ -29,6 +30,7 @@ var (
 	timestamps = flag.Bool("T", config.D_TIMESTAMP, "Enable timestamps in output")
 
 	// Program libraries
+	API         *api.RtbhApi
 	Config      *config.Config
 	Logger      *logger.Logger
 	AmqpClient  *amqp.AmqpClient
@@ -116,12 +118,12 @@ func init() {
 	}
 
 	// Then, setup all blacklist related libs
-	Blacklist = blacklist.New(Logger, Config, BGP)
-	Whitelist = whitelist.New(Logger, Config, BGP)
-	History = history.New(Logger, Config)
+	Blacklist = blacklist.New(Logger, Config, ORM, BGP)
+	Whitelist = whitelist.New(Logger, Config, ORM, BGP)
+	History = history.New(Logger, Config, ORM)
 	Pipeline = pipeline.New(Logger, Config, Blacklist, Whitelist, History)
 
-	Resolver, err = resolver.New(Logger, Config)
+	Resolver, err = resolver.New(Logger, Config, ORM)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}
@@ -130,6 +132,9 @@ func init() {
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
 	}
+
+	API = api.New(Logger, Config, Blacklist, Whitelist, History)
+	API.SetupRouting()
 
 	Logger.Debugf("init: All modules initialized")
 }
@@ -158,6 +163,9 @@ func main() {
 
 	// Start AMQP event slurper
 	go AmqpClient.Slurp(inputData)
+
+	// Start web ui
+	go API.Run()
 
 	// Wait for program completion
 	<-allDone

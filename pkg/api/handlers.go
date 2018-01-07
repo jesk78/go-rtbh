@@ -2,183 +2,208 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/r3boot/go-rtbh/pkg/events"
+	"html/template"
+	"io/ioutil"
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
+
+	"bytes"
+
+	"github.com/r3boot/go-rtbh/pkg/events"
 )
 
 type apiBlacklistEntries struct {
 	data []*events.APIEvent `json:"data"`
 }
 
-/*
- * Various handlers for in-app paths
- */
-func (api *RtbhApi) redirectToHomepage(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/", 301)
+func logHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		httpLog(r, http.StatusOK, 0)
+		h.ServeHTTP(w, r)
+	})
 }
 
-/* GET /app/*
- */
-func (api *RtbhApi) handleAppDir() http.Handler {
-	var app_dir http.Dir
-
-	app_dir = http.Dir(Config.Api.Resources + "/app/")
-	return http.StripPrefix("/app/", http.FileServer(app_dir))
-}
-
-/* GET /node_modules/*
- */
-func (api *RtbhApi) handleNodeModulesDir() http.Handler {
-	var node_dir http.Dir
-
-	node_dir = http.Dir(Config.Api.Resources + "/node_modules/")
-	return http.StripPrefix("/node_modules/", http.FileServer(node_dir))
-}
-
-/* GET /
- */
-func (api *RtbhApi) handleHomepage() http.Handler {
-	var homepage http.Dir
-
-	homepage = http.Dir(Config.Api.Resources + "/index.html")
-	return http.FileServer(homepage)
-}
-
-/*
- * Handler for various static assets
- */
-func (api *RtbhApi) handleFileRequest(w http.ResponseWriter, r *http.Request) {
-	var fs os.FileInfo
-	var fd *os.File
-	var file_size int64
-	var bytes_read int
-	var data []byte
-	var full_path string
-	var err error
-
-	if r.URL.Path == "/" {
-		full_path = Config.Api.Resources + "/index.html"
-	} else {
-		full_path = Config.Api.Resources + r.URL.Path
-	}
-
-	if fs, err = os.Stat(full_path); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		Log.Warning(MYNAME + ": " + err.Error())
-		return
-	}
-
-	if fs.IsDir() {
-		w.WriteHeader(http.StatusNotFound)
-		Log.Warning(MYNAME + ": " + full_path + ": is a directory")
-		return
-	}
-
-	file_size = fs.Size()
-
-	if fd, err = os.Open(full_path); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		Log.Warning(MYNAME + ": Failed to open " + full_path + ": " + err.Error())
-		return
-	}
-
-	data = make([]byte, file_size)
-	if bytes_read, err = fd.Read(data); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		Log.Warning(MYNAME + ": Failed to read " + full_path + ": " + err.Error())
-		return
-	}
-
-	if int64(bytes_read) != file_size {
-		w.WriteHeader(http.StatusNotFound)
-		Log.Warning(MYNAME + ": Only read " + strconv.Itoa(bytes_read) + " out of " + strconv.Itoa(int(file_size)) + " bytes")
-		return
-	}
-
-	w.Write(data)
-}
-
-/*
- * Handler for /v1/blacklist[:id]
- */
-func (api *RtbhApi) handleBlacklist(w http.ResponseWriter, r *http.Request) {
+func (a *RtbhApi) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		{
-			api.getBlacklist(w, r)
-		}
-	case http.MethodPut:
-		{
-			Log.Debug(MYNAME + ": Handling save request")
-			api.saveBlacklist(w, r)
+			content, err := ioutil.ReadFile("./ui/templates/index.html")
+			if err != nil {
+				log.Warningf("WebAPI.HomeHandler ioutil.ReadFile: %v", err)
+				errorResponse(w, r, "Failed to read template")
+				return
+			}
+
+			t := template.New("index")
+
+			_, err = t.Parse(string(content))
+			if err != nil {
+				log.Warningf("WebAPI.HomeHandler t.Parse: %v", err)
+				errorResponse(w, r, "Failed to parse template")
+				return
+			}
+
+			data := TemplateData{}
+
+			output := bytes.Buffer{}
+
+			err = t.Execute(&output, data)
+			if err != nil {
+				log.Warningf("WebAPI.HomeHandler t.Execute: %v", err)
+				errmsg := "Failed to execute template"
+				http.Error(w, errmsg, http.StatusInternalServerError)
+				httpLog(r, http.StatusInternalServerError, len(errmsg))
+				return
+			}
+
+			w.Write(output.Bytes())
+			httpLog(r, http.StatusOK, output.Len())
 		}
 	default:
 		{
-			w.WriteHeader(http.StatusNotFound)
-			Log.Warning(MYNAME + ": Unknown request method used for " + PATH_API_BLACKLIST)
+			errorResponse(w, r, "Unsupported method")
 		}
 	}
 }
 
-/*
- * Handler for GET /v1/blacklist[:<id>]
- */
-func (api *RtbhApi) getBlacklist(w http.ResponseWriter, r *http.Request) {
-	var id int64
-	var id_s string
-	var entries []*events.APIEvent
-	var entry *events.APIEvent
-	var data []byte
-	var err error
+func (a *RtbhApi) BlacklistHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		{
+			entries, err := a.blacklist.GetAll()
+			if err != nil {
+				log.Warningf("RtbhApi.BlacklistHandler: %v", err)
+				errorResponse(w, r, "Failed to retrieve blacklist entries")
+				return
+			}
 
-	if strings.Contains(r.URL.Path, ":") {
-		id_s = strings.Split(r.URL.EscapedPath(), ":")[1]
-		if id, err = strconv.ParseInt(id_s, 10, 64); err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			Log.Warning(MYNAME + ".getBlacklist: " + err.Error())
-			return
+			data, err := json.Marshal(&entries)
+			if err != nil {
+				log.Warningf("RtbhApi.BlacklistHandler json.Marshal: %v", err)
+				errorResponse(w, r, "Failed to retrieve blacklist entries")
+				return
+			}
+
+			w.Write(data)
+			okResponse(r, len(data))
 		}
-
-		if entry = api.blacklist.GetById(id); entry == nil {
-			w.WriteHeader(http.StatusNotFound)
-			Log.Warning(MYNAME + ".getBlacklist: Entry for " + strconv.Itoa(int(id)) + " not found")
-			return
+	default:
+		{
+			errorResponse(w, r, "Unsupported method")
 		}
-
-		entries = append(entries, entry)
-	} else {
-		entries = api.blacklist.GetAll()
 	}
-
-	if data, err = json.Marshal(entries); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		Log.Warning(MYNAME + ".getBlacklist: json.Marshal failed: " + err.Error())
-		return
-	}
-
-	w.Write(data)
 }
 
-/*
- * Handler for PUT /v1/blacklist[:<id>]
- */
-func (api *RtbhApi) saveBlacklist(w http.ResponseWriter, r *http.Request) {
-	var id_s string
-	var id int64
-	var err error
+func (a *RtbhApi) WhitelistHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet: // Get all whitelist entries
+		{
+			entries, err := a.whitelist.GetAll()
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler: %v", err)
+				errorResponse(w, r, "Failed to retrieve whitelist entries")
+				return
+			}
 
-	if strings.Contains(r.URL.Path, ":") {
-		id_s = strings.Split(r.URL.EscapedPath(), ":")[1]
-		if id, err = strconv.ParseInt(id_s, 10, 64); err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			Log.Warning(MYNAME + ".getBlacklist: " + err.Error())
-			return
+			data, err := json.Marshal(&entries)
+			if err != nil {
+				log.Warningf("RtbhApi.Whitelist json.Marshal: %v", err)
+				errorResponse(w, r, "Failed to retrieve whitelist entries")
+				return
+			}
+
+			w.Write(data)
+			okResponse(r, len(data))
 		}
+	case http.MethodPost: // Create new whitelist entry
+		{
+			decoder := json.NewDecoder(r.Body)
 
+			request := &WebWhitelistAddRequest{}
+			response := &WebResponse{}
+
+			err := decoder.Decode(request)
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler decoder.Decode: %v", err)
+				errorResponse(w, r, "Failed to decode request")
+				return
+			}
+
+			err = a.whitelist.Add(events.RTBHWhiteEntry{
+				Address:     request.IpAddr,
+				Description: request.Description,
+			})
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler: %v", err)
+				errorResponse(w, r, "Failed to add entry")
+				return
+			}
+
+			response.Status = true
+			response.Message = "Added entry to whitelist"
+
+			w.Write(response.ToJSON())
+			okResponse(r, len(response.ToJSON()))
+		}
+	case http.MethodPatch:
+		{
+			decoder := json.NewDecoder(r.Body)
+
+			request := &WebWhitelistAddRequest{}
+			response := &WebResponse{}
+
+			err := decoder.Decode(request)
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler decoder.Decode: %v", err)
+				errorResponse(w, r, "Failed to decode request")
+				return
+			}
+
+			err = a.whitelist.Update(events.RTBHWhiteEntry{
+				Address:     request.IpAddr,
+				Description: request.Description,
+			})
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler: %v", err)
+				errorResponse(w, r, "Failed to add entry")
+				return
+			}
+
+			response.Status = true
+			response.Message = "Updated whitelist entry"
+
+			w.Write(response.ToJSON())
+			okResponse(r, len(response.ToJSON()))
+		}
+	case http.MethodDelete:
+		{
+			decoder := json.NewDecoder(r.Body)
+
+			request := &WebWhitelistRemoveRequest{}
+			response := &WebResponse{}
+
+			err := decoder.Decode(request)
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler decoder.Decode: %v", err)
+				errorResponse(w, r, "Failed to decode request")
+				return
+			}
+
+			err = a.whitelist.Remove(request.IpAddr)
+			if err != nil {
+				log.Warningf("RtbhApi.WhitelistHandler: %v", err)
+				errorResponse(w, r, "Failed to remove entry")
+				return
+			}
+
+			response.Status = true
+			response.Message = "Removed entry from whitelist"
+
+			w.Write(response.ToJSON())
+			okResponse(r, len(response.ToJSON()))
+		}
+	default:
+		{
+			errorResponse(w, r, "Unsupported method")
+		}
 	}
-
-	Log.Debug(MYNAME + ".saveBlacklist: Saving id " + strconv.Itoa(int(id)))
 }

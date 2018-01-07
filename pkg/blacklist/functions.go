@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"strings"
+
 	"github.com/r3boot/go-rtbh/pkg/events"
 	"github.com/r3boot/go-rtbh/pkg/orm"
 	"github.com/r3boot/go-rtbh/pkg/resolver"
@@ -14,28 +16,26 @@ func (bl *Blacklist) Add(event events.RTBHEvent) error {
 	bl.mutex.Lock()
 	defer bl.mutex.Unlock()
 
+	bl.log.Debugf("event: %v", event.Reason)
+
 	// Set fqdn to not-yet-lookedup so it will be picked up by the Resolver
 	fqdn := resolver.FQDN_TO_LOOKUP
 
-	addr, err := orm.UpdateAddress(event.Address, fqdn)
+	addr, err := bl.orm.UpdateAddress(event.Address, fqdn)
 	if err != nil {
 		return fmt.Errorf("Blacklist.Add: %v", err)
 	}
-	if addr.Addr == "" {
+	if addr == nil {
 		return fmt.Errorf("Blacklist.Add: address is empty")
 	}
 
-	reason, err := orm.UpdateReason(event.Reason)
+	reason, err := bl.orm.UpdateReason(event.Reason)
 	if err != nil {
 		return fmt.Errorf("Blacklist.Add: %v", err)
-	}
-	if reason.Reason == "" {
-		return fmt.Errorf("Blacklist.Add: reason is empty")
 	}
 
-	entry, err := orm.GetBlacklistEntry(event.Address)
-	if err != nil {
-		return fmt.Errorf("Blacklist.Add: %v", err)
+	if reason.Reason == "" {
+		return fmt.Errorf("Blacklist.Add: reason is empty")
 	}
 
 	expireOn, err := time.ParseDuration(event.ExpireIn)
@@ -43,7 +43,7 @@ func (bl *Blacklist) Add(event events.RTBHEvent) error {
 		return fmt.Errorf("Blacklist.Add time.ParseDuration: %v", err)
 	}
 
-	entry = &orm.Blacklist{
+	entry := &orm.Blacklist{
 		AddrId:   addr.Id,
 		ReasonId: reason.Id,
 		AddedAt:  event.AddedAt,
@@ -55,21 +55,23 @@ func (bl *Blacklist) Add(event events.RTBHEvent) error {
 		return fmt.Errorf("Blacklist.Add: %v", err)
 	}
 
-	log.Debugf("Blacklist.Add: Adding BGP route")
+	bl.log.Debugf("Blacklist.Add: Adding BGP route")
 	bl.bgp.AddRoute(addr.Addr)
 
 	return nil
 }
 
 func (bl *Blacklist) Remove(addr string) error {
-	entry, err := orm.GetBlacklistEntry(addr)
+	entry, err := bl.orm.GetBlacklistEntry(addr)
 	if err != nil {
 		return fmt.Errorf("Blacklist.Remove: %v", err)
 	}
 
 	err = entry.Remove()
 	if err != nil {
-		return fmt.Errorf("Blacklist.Remove: %v", err)
+		if !strings.Contains(err.Error(), "no rows in result set") {
+			return fmt.Errorf("Blacklist.Remove: %v", err)
+		}
 	}
 
 	bl.bgp.RemoveRoute(addr)
@@ -78,15 +80,20 @@ func (bl *Blacklist) Remove(addr string) error {
 }
 
 func (bl *Blacklist) Listed(addr string) bool {
-	entry, err := orm.GetBlacklistEntry(addr)
+	entry, err := bl.orm.GetBlacklistEntry(addr)
 	return entry != nil && err == nil
 }
 
 func (bl *Blacklist) ReapExpiredEntries() error {
 	t_now := time.Now()
 
-	for _, entry := range orm.GetBlacklistEntries() {
-		addr, err := orm.GetAddressById(entry.AddrId)
+	entries, err := bl.orm.GetBlacklistEntries()
+	if err != nil {
+		return fmt.Errorf("Blacklist.ReapExpiredEntries: %v", err)
+	}
+
+	for _, entry := range entries {
+		addr, err := bl.orm.GetAddressById(entry.AddrId)
 		if err != nil {
 			return fmt.Errorf("Blacklist.ReapExpiredEntries: %v", err)
 		}
@@ -97,10 +104,10 @@ func (bl *Blacklist) ReapExpiredEntries() error {
 		if t_now.After(entry.ExpireOn) {
 			err = entry.Remove()
 			if err != nil {
-				log.Warningf("Blacklist.ReapExpiredEntries: %v", err)
+				bl.log.Warningf("Blacklist.ReapExpiredEntries: %v", err)
 				continue
 			}
-			log.Debugf("Blacklist.ReapExpiredEntries: %s expired from blacklist", addr.Addr)
+			bl.log.Debugf("Blacklist.ReapExpiredEntries: %s expired from blacklist", addr.Addr)
 		}
 	}
 
@@ -108,9 +115,14 @@ func (bl *Blacklist) ReapExpiredEntries() error {
 }
 
 func (bl *Blacklist) GetById(id int64) (*events.APIEvent, error) {
-	for _, entry := range orm.GetBlacklistEntries() {
+	entries, err := bl.orm.GetBlacklistEntries()
+	if err != nil {
+		return nil, fmt.Errorf("Blacklist.GetById: %v", err)
+	}
+
+	for _, entry := range entries {
 		if entry.Id == id {
-			addr, err := orm.GetAddressById(entry.AddrId)
+			addr, err := bl.orm.GetAddressById(entry.AddrId)
 			if err != nil {
 				return nil, fmt.Errorf("Blacklist.GetById: %v", err)
 			}
@@ -118,7 +130,7 @@ func (bl *Blacklist) GetById(id int64) (*events.APIEvent, error) {
 				return nil, fmt.Errorf("Blacklist.GetById: Did not find ip address for blacklist entry for id %d", id)
 			}
 
-			reason, err := orm.GetReasonById(entry.ReasonId)
+			reason, err := bl.orm.GetReasonById(entry.ReasonId)
 			if err != nil {
 				return nil, fmt.Errorf("Blacklist.GetById: %v", err)
 			}
@@ -141,8 +153,14 @@ func (bl *Blacklist) GetById(id int64) (*events.APIEvent, error) {
 
 func (bl *Blacklist) GetAll() ([]*events.APIEvent, error) {
 	entries := []*events.APIEvent{}
-	for _, entry := range orm.GetBlacklistEntries() {
-		addr, err := orm.GetAddressById(entry.AddrId)
+
+	blEntries, err := bl.orm.GetBlacklistEntries()
+	if err != nil {
+		return nil, fmt.Errorf("Blacklist.GetAll: %v", err)
+	}
+
+	for _, entry := range blEntries {
+		addr, err := bl.orm.GetAddressById(entry.AddrId)
 		if err != nil {
 			return nil, fmt.Errorf("Blacklist.GetAll: %v", err)
 		}
@@ -150,7 +168,7 @@ func (bl *Blacklist) GetAll() ([]*events.APIEvent, error) {
 			return nil, fmt.Errorf("Blacklist.GetAll: Did not find ip address for blacklist entry for object id %d", entry.Id)
 		}
 
-		reason, err := orm.GetReasonById(entry.ReasonId)
+		reason, err := bl.orm.GetReasonById(entry.ReasonId)
 		if err != nil {
 			return nil, fmt.Errorf("Blacklist.GetAll: %v", err)
 		}

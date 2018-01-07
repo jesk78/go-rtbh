@@ -7,8 +7,8 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/orm"
 )
 
-func (history *History) Add(event events.RTBHEvent) error {
-	addr, err := orm.GetAddress(event.Address)
+func (h *History) Add(event events.RTBHEvent) error {
+	addr, err := h.orm.GetAddress(event.Address)
 	if err != nil {
 		return fmt.Errorf("History.Add: %v", err)
 	}
@@ -16,7 +16,7 @@ func (history *History) Add(event events.RTBHEvent) error {
 		return fmt.Errorf("History.Add: Address is empty")
 	}
 
-	reason, err := orm.GetReason(event.Reason)
+	reason, err := h.orm.GetReason(event.Reason)
 	if err != nil {
 		return fmt.Errorf("History.Add: %v", err)
 	}
