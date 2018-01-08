@@ -3,6 +3,7 @@ package events
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 func (event *RTBHEvent) LoadFrom(data []byte) error {
@@ -17,13 +18,20 @@ func (event *RTBHEvent) LoadFrom(data []byte) error {
 	switch et.EventType {
 	case E_ALERT:
 		{
-			et_data := &etAlert{}
-			err := json.Unmarshal(data, &et_data)
+			etData := &etAlert{}
+			err := json.Unmarshal(data, &etData)
 			if err != nil {
 				return fmt.Errorf("RTBHEvent.LoadFrom json.Unmarshal: %v", err)
 			}
-			event.Address = et_data.SrcIp
-			event.Reason = et_data.Alert.Signature
+			event.Address = etData.SrcIp
+			event.Reason = etData.Alert.Signature
+			event.FlowId = etData.FlowId
+
+			ts, err := time.Parse("2006-01-02T15:04:05.000000-0700", etData.Timestamp)
+			if err != nil {
+				return fmt.Errorf("RTBHEvent.LoadFrom time.Parse: %v", err)
+			}
+			event.AddedAt = ts
 		}
 	case E_HTTP:
 		{

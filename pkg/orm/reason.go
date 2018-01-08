@@ -61,13 +61,13 @@ func (o *ORM) UpdateReason(reason_s string) (*Reason, error) {
 			return nil, fmt.Errorf("ORM.UpdateReason db.Create: %v", err)
 		}
 
-		q := Reason{Reason: reason_s}
+		q := &Reason{Reason: reason_s}
 		err = o.db.Select(q)
 		if err != nil {
 			return nil, fmt.Errorf("ORM.UpdateReason db.Select: %v", err)
 		}
 
-		reason = &q
+		reason = q
 	} else {
 		o.log.Debugf("ORM.UpdateReason: updating existing entry")
 		err = o.db.Update(reason)

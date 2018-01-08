@@ -10,6 +10,7 @@ type Blacklist struct {
 	Id       int64
 	AddrId   int64
 	ReasonId int64
+	FlowId   int64
 	AddedAt  time.Time
 	ExpireOn time.Time
 }
@@ -68,7 +69,7 @@ func (o *ORM) GetBlacklistEntry(addr_s string) (*Blacklist, error) {
 func (o *ORM) GetBlacklistEntries() ([]*Blacklist, error) {
 	entries := []*Blacklist{}
 
-	_, err := o.db.Query(&entries, "SELECT * FROM blacklists")
+	_, err := o.db.Query(&entries, "SELECT * FROM blacklists ORDER BY added_at DESC")
 	if err != nil {
 		return nil, fmt.Errorf("ORM.GetBlacklistEntries db.Query: %v", err)
 	}

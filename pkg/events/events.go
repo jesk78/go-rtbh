@@ -1,8 +1,6 @@
 package events
 
 import (
-	"time"
-
 	"github.com/r3boot/go-rtbh/pkg/config"
 	"github.com/r3boot/go-rtbh/pkg/logger"
 )
@@ -23,9 +21,9 @@ func Setup(l *logger.Logger, c *config.Config) {
 }
 
 func New(data []byte) (event *RTBHEvent, err error) {
-	event = &RTBHEvent{
-		AddedAt: time.Now(),
-	}
+
+	event = &RTBHEvent{}
+
 	err = event.LoadFrom(data)
 	if err != nil {
 		event = nil

@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/r3boot/go-rtbh/pkg/blacklist"
 	"github.com/r3boot/go-rtbh/pkg/config"
+	"github.com/r3boot/go-rtbh/pkg/es"
 	"github.com/r3boot/go-rtbh/pkg/history"
 	"github.com/r3boot/go-rtbh/pkg/logger"
 	"github.com/r3boot/go-rtbh/pkg/whitelist"
@@ -36,15 +37,17 @@ type WebWhitelistRemoveRequest struct {
 	IpAddr string `json:"ip_addr"`
 }
 
+type WebESProxyDetailsRequest struct {
+	FlowId int64 `json:"flow_id"`
+}
+
 type TemplateData struct{}
 
 type RtbhApi struct {
+	cfg       *config.Config
+	log       *logger.Logger
 	blacklist *blacklist.Blacklist
 	whitelist *whitelist.Whitelist
 	history   *history.History
+	es        *es.ES
 }
-
-var (
-	cfg *config.Config
-	log *logger.Logger
-)

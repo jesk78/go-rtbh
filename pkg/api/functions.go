@@ -44,6 +44,7 @@ func (a *RtbhApi) SetupRouting() {
 	// API
 	http.HandleFunc("/api/v1/blacklist", a.BlacklistHandler)
 	http.HandleFunc("/api/v1/whitelist", a.WhitelistHandler)
+	http.HandleFunc("/api/v1/esproxy", a.ESProxyHandler)
 
 	// Website
 	http.Handle("/css/", logHandler(http.FileServer(http.Dir("./ui"))))
@@ -56,8 +57,8 @@ func (a *RtbhApi) SetupRouting() {
 func (api *RtbhApi) Run() {
 	var url string
 
-	url = cfg.Api.BindIp + ":" + cfg.Api.BindPort
-	log.Debugf("RtbhApi.Run: Listening on http://" + url)
+	url = api.cfg.Api.BindIp + ":" + api.cfg.Api.BindPort
+	api.log.Debugf("RtbhApi.Run: Listening on http://" + url)
 	http.ListenAndServe(url, nil)
 
 	return

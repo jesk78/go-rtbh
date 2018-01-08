@@ -12,6 +12,7 @@ import (
 	"github.com/r3boot/go-rtbh/pkg/bgp"
 	"github.com/r3boot/go-rtbh/pkg/blacklist"
 	"github.com/r3boot/go-rtbh/pkg/config"
+	"github.com/r3boot/go-rtbh/pkg/es"
 	"github.com/r3boot/go-rtbh/pkg/events"
 	"github.com/r3boot/go-rtbh/pkg/history"
 	"github.com/r3boot/go-rtbh/pkg/logger"
@@ -43,6 +44,7 @@ var (
 	Pipeline    *pipeline.Pipeline
 	BGP         *bgp.BGP
 	ORM         *orm.ORM
+	ES          *es.ES
 
 	// OS signals
 	signals chan os.Signal
@@ -112,6 +114,8 @@ func init() {
 		Logger.Fatalf("init: %v", err)
 	}
 
+	ES = es.New(Logger, Config)
+
 	BGP, err = bgp.New(Logger, Config)
 	if err != nil {
 		Logger.Fatalf("init: %v", err)
@@ -133,7 +137,7 @@ func init() {
 		Logger.Fatalf("init: %v", err)
 	}
 
-	API = api.New(Logger, Config, Blacklist, Whitelist, History)
+	API = api.New(Logger, Config, Blacklist, Whitelist, History, ES)
 	API.SetupRouting()
 
 	Logger.Debugf("init: All modules initialized")

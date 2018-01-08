@@ -48,6 +48,9 @@ amqp:
   password: 'go-rtbh'
   exchange: 'amqp-input'
 
+elasticsearch:
+  address: 'elasticsearch.service.as65342:9200'
+
 bgp:
   asnum: 65342
   routerid: '10.0.4.1'

@@ -55,6 +55,10 @@ type AmqpConfig struct {
 	Exchange string `yaml:"exchange"`
 }
 
+type ESConfig struct {
+	Address string `yaml:"address"`
+}
+
 type RedisConfig struct {
 	Address  string `yaml:"address"`
 	Password string `yaml:"password"`
@@ -98,6 +102,7 @@ type Config struct {
 	General   GeneralConfig     `yaml:"general"`
 	Api       ApiConfig         `yaml:"api"`
 	Amqp      AmqpConfig        `yaml:"amqp"`
+	ES        ESConfig          `yaml:"elasticsearch"`
 	Redis     RedisConfig       `yaml:"redis"`
 	Database  PostgresConfig    `yaml:"postgresql"`
 	BGP       BGPConfig         `yaml:"bgp"`

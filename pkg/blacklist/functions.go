@@ -46,6 +46,7 @@ func (bl *Blacklist) Add(event events.RTBHEvent) error {
 	entry := &orm.Blacklist{
 		AddrId:   addr.Id,
 		ReasonId: reason.Id,
+		FlowId:   event.FlowId,
 		AddedAt:  event.AddedAt,
 		ExpireOn: time.Now().Add(expireOn),
 	}
@@ -180,6 +181,7 @@ func (bl *Blacklist) GetAll() ([]*events.APIEvent, error) {
 			Id:       entry.Id,
 			Address:  addr.Addr,
 			Reason:   reason.Reason,
+			FlowId: entry.FlowId,
 			AddedAt:  entry.AddedAt,
 			ExpireOn: entry.ExpireOn,
 		}
